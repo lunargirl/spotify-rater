@@ -1,12 +1,13 @@
 import type { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { buildSessionCookieOptions, setSessionCookie } from "@/lib/session-cookies";
+import {
+  buildSessionCookieOptions,
+  setSessionCookie,
+  SPOTIFY_ME_BLOCKED_COOKIE,
+} from "@/lib/session-cookies";
 import type { SpotifyUser } from "@/types";
 
 const SPOTIFY_API_BASE = "https://api.spotify.com/v1";
-
-/** Survives serverless cold starts (in-memory block is per-instance only). */
-export const SPOTIFY_ME_BLOCKED_COOKIE = "spotify_me_blocked_until";
 
 let meBlockedUntil = 0;
 

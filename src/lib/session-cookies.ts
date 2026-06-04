@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import type { NextResponse } from "next/server";
-import { SPOTIFY_ME_BLOCKED_COOKIE } from "@/lib/spotify-me";
+
+/** Cookie storing epoch ms until Spotify GET /v1/me should not be called. */
+export const SPOTIFY_ME_BLOCKED_COOKIE = "spotify_me_blocked_until";
 
 /** Secure flag breaks session cookies on http://127.0.0.1 — only use on HTTPS. */
 export function shouldUseSecureSessionCookies(): boolean {
