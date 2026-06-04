@@ -1,22 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAppUrl, resolvePublicOriginFromRequest } from "@/lib/env";
+import { clearAuthCookiesOnResponse } from "@/lib/session-cookies";
 import { clearSpotifyUserSessionCache } from "@/lib/session-user";
-
-function clearAuthCookies(response: NextResponse) {
-  const clear = { path: "/", maxAge: 0 };
-  response.cookies.set("spotify_access_token", "", clear);
-  response.cookies.set("spotify_refresh_token", "", clear);
-  response.cookies.set("spotify_token_expires_at", "", clear);
-  response.cookies.set("spotify_scopes_version", "", clear);
-  response.cookies.set("spotify_oauth_state", "", clear);
-  response.cookies.set("spotify_user_id", "", clear);
-  response.cookies.set("spotify_display_name", "", clear);
-}
 
 export async function POST() {
   clearSpotifyUserSessionCache();
   const response = NextResponse.json({ success: true });
-  clearAuthCookies(response);
+  clearAuthCookiesOnResponse(response);
   return response;
 }
 
@@ -32,6 +22,6 @@ export async function GET(request: NextRequest) {
 
   clearSpotifyUserSessionCache();
   const response = NextResponse.redirect(redirectUrl);
-  clearAuthCookies(response);
+  clearAuthCookiesOnResponse(response);
   return response;
 }

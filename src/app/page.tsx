@@ -15,11 +15,11 @@ export default async function Home({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  if (await safeShouldRedirectFromLogin()) {
+  const params = await searchParams;
+
+  if (!params.error && (await safeShouldRedirectFromLogin())) {
     redirect("/dashboard");
   }
-
-  const params = await searchParams;
   const appUrl = await resolvePublicOriginFromHeaders();
   const configError = describeMissingDeployConfig();
   const spotifyAuthUrl = appUrl && !configError ? `${appUrl}/api/auth/spotify` : null;

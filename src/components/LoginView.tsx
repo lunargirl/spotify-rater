@@ -13,8 +13,11 @@ interface LoginViewProps {
 
 const ERROR_MESSAGES: Record<string, string> = {
   access_denied: "You denied access to Spotify.",
-  invalid_state: "Authentication failed. Please try again.",
-  auth_failed: "Could not complete Spotify login.",
+  invalid_state:
+    "Login session expired or was interrupted. Close other tabs, then try again.",
+  auth_failed: "Could not complete Spotify login. Check Vercel SPOTIFY_CLIENT_SECRET matches your Dashboard app.",
+  server_error:
+    "Spotify could not finish login (their server_error). In Development mode, add your Spotify account email under Users and Access in the Developer Dashboard, then try again in a private window.",
 };
 
 export function LoginView({

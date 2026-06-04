@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { resolveRedirectUriFromRequest } from "@/lib/env";
-import { setSessionCookie } from "@/lib/session-cookies";
+import { buildSessionCookieOptions } from "@/lib/session-cookies";
 import { getSpotifyAuthUrl, SPOTIFY_SCOPES_VERSION } from "@/lib/spotify";
 
 export const dynamic = "force-dynamic";
@@ -26,11 +26,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  await setSessionCookie("spotify_oauth_state", state, 600);
-
   console.info("[Spotify auth] redirect_uri:", redirectUri);
 
-  return NextResponse.redirect(
+  const response = NextResponse.redirect(
     getSpotifyAuthUrl(state, { showDialog: needsReauth, redirectUri })
   );
+
+  // Attach state to the same redirect response so Vercel/edge never drops it.
+  response.cookies.set("spotify_oauth_state", state, buildSessionCookieOptions(600));
+
+  return response;
 }

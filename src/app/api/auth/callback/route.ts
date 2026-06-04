@@ -5,7 +5,11 @@ import {
   resolvePublicOriginFromRequest,
   resolveRedirectUriFromRequest,
 } from "@/lib/env";
-import { buildSessionCookieOptions } from "@/lib/session-cookies";
+import {
+  buildSessionCookieOptions,
+  clearAuthCookiesOnResponse,
+} from "@/lib/session-cookies";
+import { clearSpotifyUserSessionCache } from "@/lib/session-user";
 import { exchangeCodeForTokens, getSpotifyUser, SPOTIFY_SCOPES_VERSION } from "@/lib/spotify";
 import { lookupUserByRefreshToken } from "@/lib/spotify-session-link";
 import { persistSpotifyUserCookies } from "@/lib/session-user";
@@ -13,9 +17,12 @@ import { persistSpotifyUserCookies } from "@/lib/session-user";
 export const dynamic = "force-dynamic";
 
 function loginErrorRedirect(appUrl: string, code: string) {
-  return NextResponse.redirect(
+  clearSpotifyUserSessionCache();
+  const response = NextResponse.redirect(
     new URL(`/login?error=${encodeURIComponent(code)}`, appUrl)
   );
+  clearAuthCookiesOnResponse(response);
+  return response;
 }
 
 export async function GET(request: NextRequest) {
