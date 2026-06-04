@@ -5,6 +5,8 @@ import { safeCanAccessProtectedRoute } from "@/lib/safe-server";
 import { SettingsPage } from "@/components/SettingsPage";
 import type { UserProfile } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 const FALLBACK_PROFILE: UserProfile = {
   user_id: "",
   display_name: "User",

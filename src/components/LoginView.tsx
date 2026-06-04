@@ -3,6 +3,8 @@ interface LoginViewProps {
   configError?: string | null;
   /** Absolute URL so OAuth always starts on the same host as SPOTIFY_REDIRECT_URI. */
   spotifyAuthUrl: string | null;
+  /** Shown so you can paste the exact URI into the Spotify Developer Dashboard. */
+  spotifyRedirectUri?: string | null;
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -11,7 +13,12 @@ const ERROR_MESSAGES: Record<string, string> = {
   auth_failed: "Could not complete Spotify login.",
 };
 
-export function LoginView({ errorCode, configError, spotifyAuthUrl }: LoginViewProps) {
+export function LoginView({
+  errorCode,
+  configError,
+  spotifyAuthUrl,
+  spotifyRedirectUri,
+}: LoginViewProps) {
   const errorMessage = errorCode
     ? ERROR_MESSAGES[errorCode] ?? "Something went wrong."
     : null;
@@ -52,6 +59,23 @@ export function LoginView({ errorCode, configError, spotifyAuthUrl }: LoginViewP
           <p className="mt-8 text-sm text-zinc-500">
             Login is unavailable until environment variables are configured on the host.
           </p>
+        )}
+
+        {spotifyRedirectUri && (
+          <div className="mt-8 rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-left text-xs text-zinc-500">
+            <p className="font-medium text-zinc-400">Spotify Developer Dashboard setup</p>
+            <p className="mt-2">
+              Add this <span className="text-zinc-400">Redirect URI</span> (exact match, or Spotify
+              returns 400):
+            </p>
+            <p className="mt-2 break-all font-mono text-[11px] text-zinc-300">
+              {spotifyRedirectUri}
+            </p>
+            <p className="mt-2">
+              In <span className="text-zinc-400">Development mode</span>, add your Spotify account
+              under Users and Access.
+            </p>
+          </div>
         )}
 
         <ul className="mt-10 space-y-3 text-left text-sm text-zinc-500">

@@ -97,6 +97,17 @@ export function tryGetAppUrl(): string | null {
   return resolveAppUrl();
 }
 
+/** Redirect URI sent to Spotify — must be registered exactly in the Developer Dashboard. */
+export function tryGetSpotifyRedirectUri(): string | null {
+  const appUrl = resolveAppUrl();
+  if (!appUrl) return null;
+  try {
+    return resolveSpotifyRedirectUri(appUrl);
+  } catch {
+    return null;
+  }
+}
+
 export function describeMissingDeployConfig(): string | null {
   const appUrl = resolveAppUrl();
   const missing: string[] = [];

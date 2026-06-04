@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation";
 import { CanonicalHostRedirect } from "@/components/CanonicalHostRedirect";
 import { LoginView } from "@/components/LoginView";
-import { describeMissingDeployConfig, tryGetAppUrl } from "@/lib/env";
+import {
+  describeMissingDeployConfig,
+  tryGetAppUrl,
+  tryGetSpotifyRedirectUri,
+} from "@/lib/env";
 import { safeShouldRedirectFromLogin } from "@/lib/safe-server";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +31,7 @@ export default async function Home({
         errorCode={params.error ?? null}
         spotifyAuthUrl={spotifyAuthUrl}
         configError={configError}
+        spotifyRedirectUri={tryGetSpotifyRedirectUri()}
       />
     </>
   );
