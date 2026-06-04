@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getValidAccessToken } from "@/lib/spotify";
+import { getRouteAccessToken } from "@/lib/spotify";
 import { bootstrapSpotifyUser, resolveSpotifyUser } from "@/lib/session-user";
 import { normalizeArtistNameForStorage } from "@/lib/artist-utils";
 import {
@@ -12,7 +12,7 @@ import { tryCreateSupabaseAdmin, createSupabaseAdmin } from "@/lib/supabase";
 import type { RatingPayload, SongRating } from "@/types";
 
 export async function GET() {
-  const accessToken = await getValidAccessToken();
+  const accessToken = await getRouteAccessToken();
 
   if (!accessToken) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -50,7 +50,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const accessToken = await getValidAccessToken();
+  const accessToken = await getRouteAccessToken();
 
   if (!accessToken) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

@@ -4,7 +4,7 @@ import {
   lookupUserByRefreshToken,
   saveRefreshTokenLink,
 } from "@/lib/spotify-session-link";
-import { buildSessionCookieOptions } from "@/lib/session-cookies";
+import { setSessionCookie } from "@/lib/session-cookies";
 import { tryCreateSupabaseAdmin } from "@/lib/supabase";
 import type { SpotifyUser } from "@/types";
 
@@ -19,14 +19,14 @@ let meCooldownUntil = 0;
 
 export async function persistSpotifyUserCookies(user: SpotifyUser): Promise<void> {
   memoryCachedUser = { user, at: Date.now() };
-  const cookieStore = await cookies();
-  const opts = buildSessionCookieOptions(60 * 60 * 24 * 30);
+  const maxAge = 60 * 60 * 24 * 30;
 
-  cookieStore.set(USER_ID_COOKIE, user.id, opts);
+  await setSessionCookie(USER_ID_COOKIE, user.id, maxAge);
   if (user.display_name) {
-    cookieStore.set(DISPLAY_NAME_COOKIE, user.display_name, opts);
+    await setSessionCookie(DISPLAY_NAME_COOKIE, user.display_name, maxAge);
   }
 
+  const cookieStore = await cookies();
   const refreshToken = cookieStore.get("spotify_refresh_token")?.value;
   if (refreshToken) {
     await saveRefreshTokenLink(refreshToken, user);
@@ -49,7 +49,9 @@ async function readUserFromCookies(): Promise<SpotifyUser | null> {
   return userFromCookies(userId, cookieStore.get(DISPLAY_NAME_COOKIE)?.value);
 }
 
-async function resolveFromRefreshTokenLink(): Promise<SpotifyUser | null> {
+async function resolveFromRefreshTokenLink(
+  persistCookies: boolean
+): Promise<SpotifyUser | null> {
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get("spotify_refresh_token")?.value;
   if (!refreshToken) return null;
@@ -57,7 +59,11 @@ async function resolveFromRefreshTokenLink(): Promise<SpotifyUser | null> {
   const linked = await lookupUserByRefreshToken(refreshToken);
   if (!linked) return null;
 
-  await persistSpotifyUserCookies(linked);
+  if (persistCookies) {
+    await persistSpotifyUserCookies(linked);
+  } else {
+    memoryCachedUser = { user: linked, at: Date.now() };
+  }
   return linked;
 }
 
@@ -89,10 +95,17 @@ async function devFallbackUser(): Promise<SpotifyUser | null> {
   return null;
 }
 
-async function fetchMeAndPersist(accessToken: string): Promise<SpotifyUser | null> {
+async function fetchMeAndPersist(
+  accessToken: string,
+  persistCookies: boolean
+): Promise<SpotifyUser | null> {
   try {
     const user = await getSpotifyUser(accessToken);
-    await persistSpotifyUserCookies(user);
+    if (persistCookies) {
+      await persistSpotifyUserCookies(user);
+    } else {
+      memoryCachedUser = { user, at: Date.now() };
+    }
     return user;
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
@@ -108,6 +121,8 @@ async function fetchMeAndPersist(accessToken: string): Promise<SpotifyUser | nul
 export type ResolveSpotifyUserOptions = {
   /** Bypass /me cooldown (bootstrap / save flows). */
   force?: boolean;
+  /** Route Handlers may refresh tokens and write cookies; Server Components may not. */
+  allowSessionWrites?: boolean;
 };
 
 /**
@@ -116,8 +131,7 @@ export type ResolveSpotifyUserOptions = {
 export async function resolveSpotifyUser(
   options?: ResolveSpotifyUserOptions
 ): Promise<SpotifyUser | null> {
-  const accessToken = await getValidAccessToken();
-  if (!accessToken) return null;
+  const allowWrites = options?.allowSessionWrites ?? false;
 
   const fromCookies = await readUserFromCookies();
   if (fromCookies) {
@@ -129,13 +143,16 @@ export async function resolveSpotifyUser(
     return memoryCachedUser.user;
   }
 
-  const fromLink = await resolveFromRefreshTokenLink();
+  const fromLink = await resolveFromRefreshTokenLink(allowWrites);
   if (fromLink) return fromLink;
+
+  const accessToken = await getValidAccessToken({ refresh: allowWrites });
+  if (!accessToken) return null;
 
   const onCooldown = !options?.force && Date.now() < meCooldownUntil;
   if (onCooldown) {
     const dev = await devFallbackUser();
-    if (dev) {
+    if (dev && allowWrites) {
       await persistSpotifyUserCookies(dev);
       return dev;
     }
@@ -143,7 +160,7 @@ export async function resolveSpotifyUser(
   }
 
   if (!inflightMeLookup) {
-    inflightMeLookup = fetchMeAndPersist(accessToken).finally(() => {
+    inflightMeLookup = fetchMeAndPersist(accessToken, allowWrites).finally(() => {
       inflightMeLookup = null;
     });
   }
@@ -152,7 +169,7 @@ export async function resolveSpotifyUser(
   if (fromMe) return fromMe;
 
   const dev = await devFallbackUser();
-  if (dev) {
+  if (dev && allowWrites) {
     await persistSpotifyUserCookies(dev);
     return dev;
   }
@@ -169,13 +186,13 @@ export async function bootstrapSpotifyUser(): Promise<SpotifyUser | null> {
   const fromCookies = await readUserFromCookies();
   if (fromCookies) return fromCookies;
 
-  const fromLink = await resolveFromRefreshTokenLink();
+  const fromLink = await resolveFromRefreshTokenLink(true);
   if (fromLink) return fromLink;
 
-  const accessToken = await getValidAccessToken();
+  const accessToken = await getValidAccessToken({ refresh: true });
   if (!accessToken) return null;
 
-  const fromMe = await fetchMeAndPersist(accessToken);
+  const fromMe = await fetchMeAndPersist(accessToken, true);
   if (fromMe) return fromMe;
 
   const dev = await devFallbackUser();

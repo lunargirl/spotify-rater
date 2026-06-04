@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   const empty = emptyCommunityBenchmark(binWidth);
 
   try {
-    const user = await requireSpotifyUser();
+    const user = await requireSpotifyUser({ allowSessionWrites: true });
     if (!user) {
       return NextResponse.json(empty);
     }

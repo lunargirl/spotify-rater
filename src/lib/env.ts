@@ -50,6 +50,16 @@ export function getAppUrl(): string {
   return appUrl.replace(/\/$/, "");
 }
 
+/** Non-throwing app URL for Server Components (misconfigured Vercel env shows login hint). */
+export function tryGetAppUrl(): string | null {
+  try {
+    return getAppUrl();
+  } catch (error) {
+    console.error("[tryGetAppUrl]", error);
+    return null;
+  }
+}
+
 export function getSupabaseConfig() {
   const rawUrl = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
   const url = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");

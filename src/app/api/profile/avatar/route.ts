@@ -6,7 +6,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 export async function POST(request: NextRequest) {
-  const user = await requireSpotifyUser();
+  const user = await requireSpotifyUser({ allowSessionWrites: true });
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

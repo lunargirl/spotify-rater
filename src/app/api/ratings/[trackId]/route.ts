@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getValidAccessToken } from "@/lib/spotify";
+import { getRouteAccessToken } from "@/lib/spotify";
 import { resolveSpotifyUser } from "@/lib/session-user";
 import { normalizeTrackId } from "@/lib/track-id";
 import { tryCreateSupabaseAdmin } from "@/lib/supabase";
@@ -8,7 +8,7 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ trackId: string }> }
 ) {
-  const accessToken = await getValidAccessToken();
+  const accessToken = await getRouteAccessToken();
 
   if (!accessToken) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -55,7 +55,7 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ trackId: string }> }
 ) {
-  const accessToken = await getValidAccessToken();
+  const accessToken = await getRouteAccessToken();
 
   if (!accessToken) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

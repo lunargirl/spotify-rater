@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { CanonicalHostRedirect } from "@/components/CanonicalHostRedirect";
 import { LoginView } from "@/components/LoginView";
-import { getAppUrl } from "@/lib/env";
+import { tryGetAppUrl } from "@/lib/env";
 import { safeShouldRedirectFromLogin } from "@/lib/safe-server";
 
 export const dynamic = "force-dynamic";
@@ -16,12 +16,17 @@ export default async function Home({
   }
 
   const params = await searchParams;
-  const spotifyAuthUrl = `${getAppUrl()}/api/auth/spotify`;
+  const appUrl = tryGetAppUrl();
+  const spotifyAuthUrl = appUrl ? `${appUrl}/api/auth/spotify` : null;
 
   return (
     <>
       <CanonicalHostRedirect />
-      <LoginView errorCode={params.error ?? null} spotifyAuthUrl={spotifyAuthUrl} />
+      <LoginView
+        errorCode={params.error ?? null}
+        spotifyAuthUrl={spotifyAuthUrl}
+        configError={appUrl ? null : "Server is missing NEXT_PUBLIC_APP_URL (and related env vars)."}
+      />
     </>
   );
 }

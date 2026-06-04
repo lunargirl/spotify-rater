@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSpotifyUser } from "@/lib/auth-api";
 import { fetchRatingsForArtist } from "@/lib/artist-utils";
-import { getValidAccessToken } from "@/lib/spotify";
+import { getRouteAccessToken } from "@/lib/spotify";
 import { fetchArtist, fetchArtistAlbums } from "@/lib/spotify-catalog";
 import { createSupabaseAdmin } from "@/lib/supabase";
 
@@ -9,13 +9,13 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await requireSpotifyUser();
+  const user = await requireSpotifyUser({ allowSessionWrites: true });
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
   const { id } = await params;
-  const userToken = await getValidAccessToken();
+  const userToken = await getRouteAccessToken();
 
   if (!userToken) {
     return NextResponse.json(

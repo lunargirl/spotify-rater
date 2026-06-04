@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { SongDetailView } from "@/components/SongDetailView";
-import { getValidAccessToken } from "@/lib/spotify";
+import { safeCanAccessProtectedRoute } from "@/lib/safe-server";
 
 export const dynamic = "force-dynamic";
 
@@ -9,8 +9,8 @@ export default async function SongPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  if (!(await getValidAccessToken())) {
-    redirect("/api/auth/logout?redirect=/login");
+  if (!(await safeCanAccessProtectedRoute())) {
+    redirect("/login");
   }
 
   const { id } = await params;

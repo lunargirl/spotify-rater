@@ -1,6 +1,11 @@
-import { resolveSpotifyUser } from "@/lib/session-user";
+import {
+  resolveSpotifyUser,
+  type ResolveSpotifyUserOptions,
+} from "@/lib/session-user";
 import type { SpotifyUser } from "@/types";
 
-export async function requireSpotifyUser(): Promise<SpotifyUser | null> {
-  return resolveSpotifyUser();
+export async function requireSpotifyUser(
+  options?: ResolveSpotifyUserOptions
+): Promise<SpotifyUser | null> {
+  return resolveSpotifyUser(options);
 }

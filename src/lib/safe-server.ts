@@ -1,7 +1,7 @@
 import { buildCommunityBenchmark, type CommunityBenchmark } from "@/lib/community-analytics";
 import type { BinWidth } from "@/lib/analytics";
 import {
-  getValidAccessToken,
+  getRouteAccessToken,
   hasRefreshTokenCookie,
   hasValidAccessCookie,
 } from "@/lib/spotify";
@@ -39,7 +39,7 @@ export async function safeCanAccessProtectedRoute(): Promise<boolean> {
 /** Route handlers only — may refresh cookies. */
 export async function safeGetValidAccessToken(): Promise<string | null> {
   try {
-    return await getValidAccessToken();
+    return await getRouteAccessToken();
   } catch (error) {
     console.error("[safeGetValidAccessToken]", error);
     return null;

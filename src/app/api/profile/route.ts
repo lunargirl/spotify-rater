@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSpotifyUser } from "@/lib/auth-api";
-import { getValidAccessToken } from "@/lib/spotify";
+import { getRouteAccessToken } from "@/lib/spotify";
 import {
   buildProfileAnalytics,
   extractUniqueGenres,
@@ -22,12 +22,12 @@ function emptyProfilePayload() {
 
 export async function GET() {
   try {
-    const accessToken = await getValidAccessToken();
+    const accessToken = await getRouteAccessToken();
     if (!accessToken) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const user = await requireSpotifyUser();
+    const user = await requireSpotifyUser({ allowSessionWrites: true });
 
     if (!user) {
       return NextResponse.json({
@@ -91,7 +91,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
-  const user = await requireSpotifyUser();
+  const user = await requireSpotifyUser({ allowSessionWrites: true });
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

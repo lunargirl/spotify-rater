@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getValidAccessToken, spotifyFetch } from "@/lib/spotify";
+import { getRouteAccessToken, spotifyFetch } from "@/lib/spotify";
 import type { SpotifyTrack } from "@/types";
 
 interface SearchResponse {
@@ -9,7 +9,7 @@ interface SearchResponse {
 }
 
 export async function GET(request: NextRequest) {
-  const accessToken = await getValidAccessToken();
+  const accessToken = await getRouteAccessToken();
 
   if (!accessToken) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

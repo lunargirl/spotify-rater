@@ -3,7 +3,7 @@ import { normalizeGenresField, normalizeSongRating } from "@/lib/analytics";
 import { fetchTrackMetadata } from "@/lib/spotify-metadata";
 import { upsertSongRating } from "@/lib/ratings-db";
 import { bootstrapSpotifyUser, resolveSpotifyUser } from "@/lib/session-user";
-import { getValidAccessToken } from "@/lib/spotify";
+import { getRouteAccessToken } from "@/lib/spotify";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import type { SongRating } from "@/types";
 
@@ -19,7 +19,7 @@ export async function POST() {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const userAccessToken = await getValidAccessToken();
+  const userAccessToken = await getRouteAccessToken();
   if (!userAccessToken) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }

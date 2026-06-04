@@ -1,14 +1,12 @@
 import { redirect } from "next/navigation";
 import { ProfileView } from "@/components/ProfileView";
-import { getValidAccessToken } from "@/lib/spotify";
+import { safeCanAccessProtectedRoute } from "@/lib/safe-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfileRoute() {
-  const accessToken = await getValidAccessToken();
-
-  if (!accessToken) {
-    redirect("/api/auth/logout?redirect=/login");
+  if (!(await safeCanAccessProtectedRoute())) {
+    redirect("/login");
   }
 
   return <ProfileView />;

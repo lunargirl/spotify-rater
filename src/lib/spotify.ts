@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import type { SpotifyUser } from "@/types";
 import { getSpotifyConfig } from "@/lib/env";
-import { buildSessionCookieOptions } from "@/lib/session-cookies";
+import { setSessionCookie } from "@/lib/session-cookies";
 
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
 const SPOTIFY_API_BASE = "https://api.spotify.com/v1";
@@ -135,7 +135,15 @@ function isAccessTokenExpired(expiresAt: string | undefined): boolean {
   return Number.isNaN(expiry) || Date.now() >= expiry;
 }
 
-export async function getValidAccessToken(): Promise<string | null> {
+export type GetValidAccessTokenOptions = {
+  /** When false (Server Components), never refresh or write cookies. Default false. */
+  refresh?: boolean;
+};
+
+export async function getValidAccessToken(
+  options?: GetValidAccessTokenOptions
+): Promise<string | null> {
+  const refresh = options?.refresh ?? false;
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("spotify_access_token")?.value;
   const refreshToken = cookieStore.get("spotify_refresh_token")?.value;
@@ -149,27 +157,23 @@ export async function getValidAccessToken(): Promise<string | null> {
     return accessToken;
   }
 
-  if (!refreshToken) {
+  if (!refresh || !refreshToken) {
     return null;
   }
 
   try {
     const tokens = await refreshAccessToken(refreshToken);
-    cookieStore.set(
-      "spotify_access_token",
-      tokens.access_token,
-      buildSessionCookieOptions(tokens.expires_in)
-    );
-    cookieStore.set(
+    await setSessionCookie("spotify_access_token", tokens.access_token, tokens.expires_in);
+    await setSessionCookie(
       "spotify_token_expires_at",
       String(Date.now() + tokens.expires_in * 1000),
-      buildSessionCookieOptions(tokens.expires_in)
+      tokens.expires_in
     );
     if (tokens.refresh_token) {
-      cookieStore.set(
+      await setSessionCookie(
         "spotify_refresh_token",
         tokens.refresh_token,
-        buildSessionCookieOptions(60 * 60 * 24 * 30)
+        60 * 60 * 24 * 30
       );
     }
     return tokens.access_token;
@@ -177,6 +181,11 @@ export async function getValidAccessToken(): Promise<string | null> {
     console.error("[getValidAccessToken] Refresh failed:", error);
     return null;
   }
+}
+
+/** Route Handlers / Server Actions may refresh Spotify tokens and set cookies. */
+export function getRouteAccessToken(): Promise<string | null> {
+  return getValidAccessToken({ refresh: true });
 }
 
 /** Non-expired access token only (read-only, safe for Server Components). */

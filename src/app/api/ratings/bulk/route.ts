@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getValidAccessToken } from "@/lib/spotify";
+import { getRouteAccessToken } from "@/lib/spotify";
 import { resolveSpotifyUser } from "@/lib/session-user";
 import { normalizeArtistNameForStorage } from "@/lib/artist-utils";
 import {
@@ -11,7 +11,7 @@ import { createSupabaseAdmin } from "@/lib/supabase";
 import type { RatingPayload } from "@/types";
 
 export async function POST(request: NextRequest) {
-  const accessToken = await getValidAccessToken();
+  const accessToken = await getRouteAccessToken();
 
   if (!accessToken) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

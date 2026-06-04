@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getValidAccessToken } from "@/lib/spotify";
+import { getRouteAccessToken } from "@/lib/spotify";
 import { bootstrapSpotifyUser, resolveSpotifyUser } from "@/lib/session-user";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const accessToken = await getValidAccessToken();
+  const accessToken = await getRouteAccessToken();
 
   if (!accessToken) {
     return NextResponse.json({ authenticated: false }, { status: 401 });

@@ -8,7 +8,7 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await requireSpotifyUser();
+  const user = await requireSpotifyUser({ allowSessionWrites: true });
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
