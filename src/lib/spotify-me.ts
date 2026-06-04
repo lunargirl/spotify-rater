@@ -112,10 +112,9 @@ export async function fetchSpotifyMe(
   accessToken: string,
   options?: { max429Retries?: number }
 ): Promise<SpotifyUser> {
-  if (isMeBlocked()) {
-    throw new Error(
-      `Spotify API error (429): rate limited — retry in ${getMeBlockedRemainingSeconds()}s`
-    );
+  if (await isMeBlockedEffective()) {
+    const sec = await getMeBlockedRemainingSecondsEffective();
+    throw new Error(`Spotify API error (429): rate limited — retry in ${sec}s`);
   }
 
   const max429Retries = options?.max429Retries ?? 0;

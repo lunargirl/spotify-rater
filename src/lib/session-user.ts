@@ -117,7 +117,7 @@ async function fetchMeAndPersist(
   persistCookies: boolean,
   options?: FetchMeOptions
 ): Promise<SpotifyUser | null> {
-  if (isMeBlocked() && !options?.force) {
+  if ((await isMeBlockedEffective()) && !options?.force) {
     return null;
   }
 
@@ -234,7 +234,7 @@ export async function bootstrapSpotifyUser(): Promise<SpotifyUser | null> {
   const accessToken = await getValidAccessToken({ refresh: true });
   if (!accessToken) return null;
 
-  if (isMeBlocked()) {
+  if (await isMeBlockedEffective()) {
     return null;
   }
 

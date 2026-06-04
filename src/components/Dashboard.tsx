@@ -20,6 +20,8 @@ export function Dashboard() {
   const [loadingRatings, setLoadingRatings] = useState(true);
   const [useNowPlaying, setUseNowPlaying] = useState(true);
   const [profileWarning, setProfileWarning] = useState<string | null>(null);
+  const [waitSeconds, setWaitSeconds] = useState(0);
+  const [recoveringProfile, setRecoveringProfile] = useState(false);
 
   const fetchNowPlaying = useCallback(async () => {
     try {
@@ -76,6 +78,8 @@ export function Dashboard() {
       if (data?.user) {
         setUser(data.user);
         setProfileWarning(null);
+        setWaitSeconds(0);
+        setRecoveringProfile(false);
         return data.user;
       }
 
@@ -84,7 +88,72 @@ export function Dashboard() {
         bootstrapData?.warning ??
         "Spotify profile not loaded yet.";
       setProfileWarning(warning);
-      return { rateLimited: Boolean(data?.rateLimited ?? bootstrapData?.rateLimited), retryAfterSeconds: data?.retryAfterSeconds ?? bootstrapData?.retryAfterSeconds ?? 60 };
+      const retryAfterSeconds =
+        data?.retryAfterSeconds ?? bootstrapData?.retryAfterSeconds ?? 0;
+      if (retryAfterSeconds > 0) {
+        setWaitSeconds((prev) => Math.max(prev, retryAfterSeconds));
+      }
+      return {
+        rateLimited: Boolean(data?.rateLimited ?? bootstrapData?.rateLimited),
+        retryAfterSeconds,
+      };
+    }
+
+    async function runRecoverProfile() {
+      setRecoveringProfile(true);
+      setProfileWarning("Loading your Spotify profile…");
+      const recoverRes = await fetch("/api/auth/recover-profile", { method: "POST" });
+      const recoverData = await recoverRes.json().catch(() => null);
+      if (cancelled) return;
+
+      if (recoverData?.user) {
+        setUser(recoverData.user);
+        setProfileWarning(null);
+        setWaitSeconds(0);
+        setRecoveringProfile(false);
+        const url = new URL(window.location.href);
+        url.searchParams.delete("rate_limit");
+        window.history.replaceState({}, "", url.pathname + url.search);
+        return;
+      }
+
+      if (recoverData?.rateLimited && recoverData.retryAfterSeconds > 0) {
+        setWaitSeconds(recoverData.retryAfterSeconds);
+        setRecoveringProfile(false);
+        return;
+      }
+
+      setRecoveringProfile(false);
+      await tryLoadProfile();
+    }
+
+    async function waitForRateLimitThenRecover(initialSeconds: number) {
+      let remaining = Math.max(initialSeconds, 0);
+      setWaitSeconds(remaining);
+      setProfileWarning(
+        remaining > 0
+          ? `Spotify is rate-limiting profile requests. Auto-loading in ${remaining}s…`
+          : "Loading your Spotify profile…"
+      );
+
+      while (remaining > 0 && !cancelled) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const statusRes = await fetch("/api/auth/rate-limit-status");
+        const status = await statusRes.json().catch(() => null);
+        remaining = Math.max(
+          status?.secondsRemaining ?? remaining - 1,
+          0
+        );
+        setWaitSeconds(remaining);
+        if (remaining > 0) {
+          setProfileWarning(
+            `Spotify is rate-limiting profile requests. Auto-loading in ${remaining}s…`
+          );
+        }
+      }
+
+      if (cancelled) return;
+      await runRecoverProfile();
     }
 
     async function loadUser() {
@@ -92,24 +161,34 @@ export function Dashboard() {
       const rateLimitSec = Number(params.get("rate_limit")) || 0;
 
       if (rateLimitSec > 0) {
-        setProfileWarning(
-          `Spotify is rate-limiting logins. Your profile should load in about ${rateLimitSec} seconds — please wait.`
-        );
-        await new Promise((resolve) => setTimeout(resolve, (rateLimitSec + 3) * 1000));
+        await waitForRateLimitThenRecover(rateLimitSec);
         if (cancelled) return;
-        await fetch("/api/auth/recover-profile", { method: "POST" });
-      }
-
-      const result = await tryLoadProfile();
-      if (cancelled || !result || typeof result !== "object" || !("rateLimited" in result)) {
+        const result = await tryLoadProfile();
+        if (
+          result &&
+          typeof result === "object" &&
+          "rateLimited" in result &&
+          result.rateLimited &&
+          (result.retryAfterSeconds ?? 0) > 0
+        ) {
+          await waitForRateLimitThenRecover(result.retryAfterSeconds ?? 60);
+        }
         return;
       }
 
-      if (result.rateLimited) {
-        const waitSec = Math.max(result.retryAfterSeconds ?? 60, 30) + 3;
-        await new Promise((resolve) => setTimeout(resolve, waitSec * 1000));
-        if (cancelled) return;
-        await fetch("/api/auth/recover-profile", { method: "POST" });
+      const result = await tryLoadProfile();
+      if (
+        cancelled ||
+        !result ||
+        typeof result !== "object" ||
+        !("rateLimited" in result) ||
+        !result.rateLimited
+      ) {
+        return;
+      }
+
+      await waitForRateLimitThenRecover(Math.max(result.retryAfterSeconds ?? 60, 30));
+      if (!cancelled) {
         await tryLoadProfile();
       }
     }
@@ -159,16 +238,33 @@ export function Dashboard() {
         {profileWarning && !user && (
           <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-200">
             <p>{profileWarning}</p>
+            {waitSeconds > 0 && !recoveringProfile && (
+              <p className="mt-2 font-mono text-lg tabular-nums text-amber-100">
+                {waitSeconds}s
+              </p>
+            )}
+            {recoveringProfile && (
+              <p className="mt-2 text-xs text-amber-200/80">Please stay on this page…</p>
+            )}
             <p className="mt-2 text-xs text-amber-200/80">
-              Do not refresh repeatedly — that triggers Spotify rate limits.
+              Do not refresh or log in again — recovery runs automatically when the timer ends.
             </p>
             <div className="mt-3 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
-              <a
-                href="/api/auth/recover-profile"
-                className="font-medium text-accent hover:underline"
-              >
-                Recover profile
-              </a>
+              {waitSeconds === 0 && !recoveringProfile ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void fetch("/api/auth/recover-profile", { method: "POST" }).then(() =>
+                      window.location.reload()
+                    );
+                  }}
+                  className="font-medium text-accent hover:underline"
+                >
+                  Retry now
+                </button>
+              ) : (
+                <span className="text-zinc-500">Recover profile (automatic)</span>
+              )}
               <a
                 href="/api/auth/logout?redirect=/login"
                 className="font-medium text-zinc-400 hover:underline"
