@@ -19,7 +19,10 @@ export async function GET() {
   }
 
   try {
-    const user = await resolveSpotifyUser();
+    let user = await resolveSpotifyUser({ allowSessionWrites: true });
+    if (!user) {
+      user = await bootstrapSpotifyUser();
+    }
     if (!user) {
       return NextResponse.json({ ratings: [] });
     }

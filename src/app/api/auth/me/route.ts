@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 
-  let user = await resolveSpotifyUser();
+  let user = await resolveSpotifyUser({ allowSessionWrites: true });
   if (!user) {
     user = await bootstrapSpotifyUser();
   }

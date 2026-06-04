@@ -18,7 +18,7 @@ export async function POST() {
         ok: false,
         user: null,
         warning:
-          "Spotify profile is still unavailable. Wait a minute, then try again or sign out and back in.",
+          "Could not load your Spotify profile. Sign out, then log in again from https://spotify-rater-delta.vercel.app (private window). If it persists, verify SPOTIFY_CLIENT_SECRET on Vercel matches the Dashboard app.",
       },
       { status: 200 }
     );

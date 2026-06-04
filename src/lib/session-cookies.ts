@@ -61,3 +61,17 @@ export function clearAuthCookiesOnResponse(response: NextResponse): void {
     response.cookies.set(name, "", clear);
   }
 }
+
+const PROFILE_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
+
+/** Set profile cookies on a redirect so the browser always receives them. */
+export function persistUserIdOnResponse(
+  response: NextResponse,
+  user: { id: string; display_name?: string | null }
+): void {
+  const opts = buildSessionCookieOptions(PROFILE_COOKIE_MAX_AGE);
+  response.cookies.set("spotify_user_id", user.id, opts);
+  if (user.display_name) {
+    response.cookies.set("spotify_display_name", user.display_name, opts);
+  }
+}

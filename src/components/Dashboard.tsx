@@ -19,6 +19,7 @@ export function Dashboard() {
   const [loadingPlayback, setLoadingPlayback] = useState(true);
   const [loadingRatings, setLoadingRatings] = useState(true);
   const [useNowPlaying, setUseNowPlaying] = useState(true);
+  const [profileWarning, setProfileWarning] = useState<string | null>(null);
 
   const fetchNowPlaying = useCallback(async () => {
     try {
@@ -61,18 +62,30 @@ export function Dashboard() {
     let cancelled = false;
 
     async function loadUser() {
-      await fetch("/api/auth/bootstrap", { method: "POST" });
-      const res = await fetch("/api/auth/me");
-      if (cancelled) return;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        await fetch("/api/auth/bootstrap", { method: "POST" });
+        const res = await fetch("/api/auth/me");
+        if (cancelled) return;
 
-      if (res.status === 401) {
-        window.location.replace("/api/auth/logout?redirect=/login");
-        return;
-      }
+        if (res.status === 401) {
+          window.location.replace("/api/auth/logout?redirect=/login");
+          return;
+        }
 
-      const data = await res.json().catch(() => null);
-      if (data?.user) {
-        setUser(data.user);
+        const data = await res.json().catch(() => null);
+        if (data?.user) {
+          setUser(data.user);
+          setProfileWarning(null);
+          return;
+        }
+
+        if (data?.warning) {
+          setProfileWarning(data.warning);
+        }
+
+        if (attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
+        }
       }
     }
 
@@ -118,6 +131,17 @@ export function Dashboard() {
       <AppHeader userLabel={user?.display_name ?? user?.id} />
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        {profileWarning && !user && (
+          <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-200">
+            <p>{profileWarning}</p>
+            <a
+              href="/api/auth/logout?redirect=/login"
+              className="mt-2 inline-block font-medium text-accent hover:underline"
+            >
+              Sign out and connect again
+            </a>
+          </div>
+        )}
         <div className="grid gap-6 lg:grid-cols-5">
           <div className="space-y-6 lg:col-span-3">
             <section>

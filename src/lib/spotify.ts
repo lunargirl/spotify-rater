@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import type { SpotifyUser } from "@/types";
 import { getSpotifyConfig } from "@/lib/env";
-import { setSessionCookie } from "@/lib/session-cookies";
+import { buildSessionCookieOptions } from "@/lib/session-cookies";
 
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
 const SPOTIFY_API_BASE = "https://api.spotify.com/v1";
@@ -165,26 +165,40 @@ export async function getValidAccessToken(
     return null;
   }
 
+  return writeRefreshedTokens(refreshToken);
+}
+
+async function writeRefreshedTokens(refreshToken: string): Promise<string | null> {
   try {
     const tokens = await refreshAccessToken(refreshToken);
-    await setSessionCookie("spotify_access_token", tokens.access_token, tokens.expires_in);
-    await setSessionCookie(
+    const cookieStore = await cookies();
+    const accessOpts = buildSessionCookieOptions(tokens.expires_in);
+    cookieStore.set("spotify_access_token", tokens.access_token, accessOpts);
+    cookieStore.set(
       "spotify_token_expires_at",
       String(Date.now() + tokens.expires_in * 1000),
-      tokens.expires_in
+      accessOpts
     );
     if (tokens.refresh_token) {
-      await setSessionCookie(
+      cookieStore.set(
         "spotify_refresh_token",
         tokens.refresh_token,
-        60 * 60 * 24 * 30
+        buildSessionCookieOptions(60 * 60 * 24 * 30)
       );
     }
     return tokens.access_token;
   } catch (error) {
-    console.error("[getValidAccessToken] Refresh failed:", error);
+    console.error("[writeRefreshedTokens] Refresh failed:", error);
     return null;
   }
+}
+
+/** Refresh even when access cookie still looks valid (e.g. /me returned 401). */
+export async function forceRefreshAccessToken(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const refreshToken = cookieStore.get("spotify_refresh_token")?.value;
+  if (!refreshToken) return null;
+  return writeRefreshedTokens(refreshToken);
 }
 
 /** Route Handlers / Server Actions may refresh Spotify tokens and set cookies. */
@@ -261,4 +275,9 @@ export async function spotifyFetch<T>(
 /** Single attempt — avoids blocking OAuth callback and login flows on 429 retry storms. */
 export async function getSpotifyUser(accessToken: string): Promise<SpotifyUser> {
   return spotifyFetch<SpotifyUser>("/me", accessToken, undefined, 0, 0);
+}
+
+/** Bootstrap / callback — retries 429s so profile cookies can be set after login. */
+export async function getSpotifyUserWithRetries(accessToken: string): Promise<SpotifyUser> {
+  return spotifyFetch<SpotifyUser>("/me", accessToken, undefined, 0, 2);
 }

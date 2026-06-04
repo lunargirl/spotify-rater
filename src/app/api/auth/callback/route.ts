@@ -8,9 +8,14 @@ import {
 import {
   buildSessionCookieOptions,
   clearAuthCookiesOnResponse,
+  persistUserIdOnResponse,
 } from "@/lib/session-cookies";
 import { clearSpotifyUserSessionCache } from "@/lib/session-user";
-import { exchangeCodeForTokens, getSpotifyUser, SPOTIFY_SCOPES_VERSION } from "@/lib/spotify";
+import {
+  exchangeCodeForTokens,
+  getSpotifyUserWithRetries,
+  SPOTIFY_SCOPES_VERSION,
+} from "@/lib/spotify";
 import { lookupUserByRefreshToken } from "@/lib/spotify-session-link";
 import { persistSpotifyUserCookies } from "@/lib/session-user";
 
@@ -87,22 +92,20 @@ export async function GET(request: NextRequest) {
 
     cookieStore.delete("spotify_oauth_state");
 
+    let profile: Awaited<ReturnType<typeof getSpotifyUserWithRetries>> | null = null;
+
     try {
-      const profile = await Promise.race([
-        getSpotifyUser(tokens.access_token),
-        new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error("profile_timeout")), 4000);
-        }),
-      ]);
+      profile = await getSpotifyUserWithRetries(tokens.access_token);
       await persistSpotifyUserCookies(profile);
     } catch (profileError) {
       console.warn(
-        "[Spotify callback] Profile cookie not set:",
+        "[Spotify callback] Profile fetch failed:",
         profileError instanceof Error ? profileError.message : profileError
       );
       if (refreshToken) {
         const linked = await lookupUserByRefreshToken(refreshToken);
         if (linked) {
+          profile = linked;
           await persistSpotifyUserCookies(linked);
           console.info("[Spotify callback] Restored profile from refresh-token link");
         }
@@ -110,7 +113,11 @@ export async function GET(request: NextRequest) {
     }
 
     console.info("[Spotify callback] Login succeeded, redirecting to dashboard");
-    return NextResponse.redirect(new URL("/dashboard", appUrl));
+    const response = NextResponse.redirect(new URL("/dashboard", appUrl));
+    if (profile) {
+      persistUserIdOnResponse(response, profile);
+    }
+    return response;
   } catch (err) {
     console.error("[Spotify callback] Token exchange failed", {
       redirectUri,
