@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getRouteAccessToken } from "@/lib/spotify";
-import { bootstrapSpotifyUser, resolveSpotifyUser } from "@/lib/session-user";
+import {
+  bootstrapSpotifyUser,
+  getSpotifyMeRateLimitSeconds,
+  resolveSpotifyUser,
+} from "@/lib/session-user";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +23,17 @@ export async function GET() {
     return NextResponse.json({ authenticated: true, user });
   }
 
+  const retryAfterSeconds = getSpotifyMeRateLimitSeconds();
   return NextResponse.json(
     {
       authenticated: true,
       user: null,
-      warning: "Spotify profile is temporarily unavailable. Wait a moment and refresh.",
+      rateLimited: retryAfterSeconds > 0,
+      retryAfterSeconds,
+      warning:
+        retryAfterSeconds > 0
+          ? `Spotify rate limit — profile loads in about ${retryAfterSeconds} seconds. Avoid refreshing.`
+          : "Spotify profile is temporarily unavailable. Wait 2 minutes, then open /api/auth/recover-profile once.",
     },
     { status: 200 }
   );

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRouteAccessToken } from "@/lib/spotify";
-import { bootstrapSpotifyUser } from "@/lib/session-user";
+import { bootstrapSpotifyUser, getSpotifyMeRateLimitSeconds } from "@/lib/session-user";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +13,17 @@ export async function POST() {
 
   const user = await bootstrapSpotifyUser();
   if (!user) {
+    const retryAfterSeconds = getSpotifyMeRateLimitSeconds();
+    const rateLimited = retryAfterSeconds > 0;
     return NextResponse.json(
       {
         ok: false,
         user: null,
-        warning:
-          "Could not load your Spotify profile. Sign out, then log in again from https://spotify-rater-delta.vercel.app (private window). If it persists, verify SPOTIFY_CLIENT_SECRET on Vercel matches the Dashboard app.",
+        rateLimited,
+        retryAfterSeconds,
+        warning: rateLimited
+          ? `Spotify is rate-limiting profile requests. Wait ${retryAfterSeconds} seconds — the app will retry automatically.`
+          : "Could not load your Spotify profile. After waiting 2 minutes, open /api/auth/recover-profile once.",
       },
       { status: 200 }
     );

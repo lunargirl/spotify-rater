@@ -17,41 +17,47 @@ export function ProfileView() {
 
     async function loadProfile() {
       try {
-        for (let attempt = 0; attempt < 4; attempt++) {
-          await fetch("/api/auth/bootstrap", { method: "POST" });
-          const res = await fetch("/api/profile");
-          if (res.status === 401) {
-            window.location.href = "/api/auth/logout?redirect=/login";
-            return;
-          }
-          if (!res.ok) {
-            throw new Error("Failed to load profile");
-          }
+        const bootstrapRes = await fetch("/api/auth/bootstrap", { method: "POST" });
+        const bootstrapData = await bootstrapRes.json().catch(() => null);
 
-          const data = await res.json();
+        if (bootstrapData?.rateLimited && !cancelled) {
+          const waitSec = Math.max(bootstrapData.retryAfterSeconds ?? 60, 30) + 3;
+          setError(
+            `Spotify is rate-limiting requests. Wait about ${waitSec} seconds — loading automatically…`
+          );
+          await new Promise((resolve) => setTimeout(resolve, waitSec * 1000));
           if (cancelled) return;
-
-          if (data.spotifyUser?.id && !data.warning) {
-            setDisplayName(
-              data.profile?.display_name ??
-                data.spotifyUser?.display_name ??
-                data.spotifyUser?.id ??
-                "Profile"
-            );
-            setRatings((data.ratings ?? []).map((r: SongRating) => normalizeSongRating(r)));
-            setError(null);
-            return;
-          }
-
-          if (data.warning) {
-            setError(data.warning);
-          }
-
-          if (attempt < 3) {
-            await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
-          }
+          await fetch("/api/auth/recover-profile", { method: "POST" });
         }
-        return;
+
+        const res = await fetch("/api/profile");
+        if (res.status === 401) {
+          window.location.href = "/api/auth/logout?redirect=/login";
+          return;
+        }
+        if (!res.ok) {
+          throw new Error("Failed to load profile");
+        }
+
+        const data = await res.json();
+        if (cancelled) return;
+
+        if (data.spotifyUser?.id && !data.warning) {
+          setDisplayName(
+            data.profile?.display_name ??
+              data.spotifyUser?.display_name ??
+              data.spotifyUser?.id ??
+              "Profile"
+          );
+          setRatings((data.ratings ?? []).map((r: SongRating) => normalizeSongRating(r)));
+          setError(null);
+          return;
+        }
+
+        setError(
+          data.warning ??
+            "Profile not loaded. Wait 2 minutes without refreshing, then open Recover profile below."
+        );
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load profile");
@@ -83,16 +89,14 @@ export function ProfileView() {
             <p>{error}</p>
             <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
               <a
-                href="/api/auth/session-health"
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm font-medium text-zinc-400 hover:underline"
+                href="/api/auth/recover-profile"
+                className="text-sm font-medium text-accent hover:underline"
               >
-                View session diagnostics
+                Recover profile (one tap after waiting)
               </a>
               <a
                 href="/api/auth/logout?redirect=/login"
-                className="text-sm font-medium text-[#1db954] hover:underline"
+                className="text-sm font-medium text-zinc-400 hover:underline"
               >
                 Sign out and connect again
               </a>

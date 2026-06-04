@@ -1,33 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAppUrl, resolvePublicOriginFromRequest } from "@/lib/env";
+import { getMeBlockedRemainingSeconds, isMeBlocked } from "@/lib/spotify-me";
 import { persistUserIdOnResponse } from "@/lib/session-cookies";
 import { bootstrapSpotifyUser } from "@/lib/session-user";
 
 export const dynamic = "force-dynamic";
 
-const BOOTSTRAP_ATTEMPTS = 4;
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/** Second hop after OAuth — loads /me and sets profile cookies on the redirect response. */
+/** Second hop after OAuth — one profile load attempt (avoids /me retry storms). */
 export async function GET(request: NextRequest) {
   const appUrl = resolvePublicOriginFromRequest(request) ?? getAppUrl();
-
-  let user = null;
-  for (let attempt = 0; attempt < BOOTSTRAP_ATTEMPTS; attempt++) {
-    user = await bootstrapSpotifyUser();
-    if (user) break;
-    if (attempt < BOOTSTRAP_ATTEMPTS - 1) {
-      await sleep(600 * (attempt + 1));
-    }
-  }
+  const user = await bootstrapSpotifyUser();
 
   if (user) {
     const response = NextResponse.redirect(new URL("/dashboard", appUrl));
     persistUserIdOnResponse(response, user);
     return response;
+  }
+
+  if (isMeBlocked()) {
+    const sec = getMeBlockedRemainingSeconds();
+    console.warn("[auth/complete] Spotify /me rate limited, deferring profile", { sec });
+    return NextResponse.redirect(
+      new URL(`/dashboard?rate_limit=${Math.max(sec, 30)}`, appUrl)
+    );
   }
 
   console.error("[auth/complete] bootstrap failed after OAuth");

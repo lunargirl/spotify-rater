@@ -277,7 +277,8 @@ export async function getSpotifyUser(accessToken: string): Promise<SpotifyUser> 
   return spotifyFetch<SpotifyUser>("/me", accessToken, undefined, 0, 0);
 }
 
-/** Bootstrap / callback — retries 429s so profile cookies can be set after login. */
+/** @deprecated Use fetchSpotifyMe from @/lib/spotify-me (patient 429 handling). */
 export async function getSpotifyUserWithRetries(accessToken: string): Promise<SpotifyUser> {
-  return spotifyFetch<SpotifyUser>("/me", accessToken, undefined, 0, 3);
+  const { fetchSpotifyMe } = await import("@/lib/spotify-me");
+  return fetchSpotifyMe(accessToken, { max429Retries: 1 });
 }

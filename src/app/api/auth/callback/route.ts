@@ -10,11 +10,8 @@ import {
   persistUserIdOnResponse,
 } from "@/lib/session-cookies";
 import { clearSpotifyUserSessionCache, persistSpotifyUserCookies } from "@/lib/session-user";
-import {
-  exchangeCodeForTokens,
-  getSpotifyUserWithRetries,
-  SPOTIFY_SCOPES_VERSION,
-} from "@/lib/spotify";
+import { exchangeCodeForTokens, SPOTIFY_SCOPES_VERSION } from "@/lib/spotify";
+import { fetchSpotifyMe } from "@/lib/spotify-me";
 import { lookupUserByRefreshToken } from "@/lib/spotify-session-link";
 
 export const dynamic = "force-dynamic";
@@ -63,10 +60,10 @@ export async function GET(request: NextRequest) {
       console.warn("[Spotify callback] No refresh token returned — future refresh may fail");
     }
 
-    let profile: Awaited<ReturnType<typeof getSpotifyUserWithRetries>> | null = null;
+    let profile: Awaited<ReturnType<typeof fetchSpotifyMe>> | null = null;
 
     try {
-      profile = await getSpotifyUserWithRetries(tokens.access_token);
+      profile = await fetchSpotifyMe(tokens.access_token, { max429Retries: 0 });
     } catch (profileError) {
       console.warn(
         "[Spotify callback] Profile fetch failed:",

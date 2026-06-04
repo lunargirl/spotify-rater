@@ -48,8 +48,6 @@ export function RatingForm({
     setMessage(null);
 
     try {
-      await fetch("/api/auth/bootstrap", { method: "POST" });
-
       const res = await fetch("/api/ratings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

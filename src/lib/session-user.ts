@@ -1,10 +1,14 @@
 import { cookies } from "next/headers";
 import {
   forceRefreshAccessToken,
-  getSpotifyUser,
-  getSpotifyUserWithRetries,
   getValidAccessToken,
 } from "@/lib/spotify";
+import {
+  fetchSpotifyMe,
+  getMeBlockedRemainingSeconds,
+  isMeBlocked,
+  markMeRateLimited,
+} from "@/lib/spotify-me";
 import {
   lookupUserByRefreshToken,
   saveRefreshTokenLink,
@@ -16,7 +20,7 @@ import type { SpotifyUser } from "@/types";
 const USER_ID_COOKIE = "spotify_user_id";
 const DISPLAY_NAME_COOKIE = "spotify_display_name";
 const MEMORY_CACHE_TTL_MS = 10 * 60 * 1000;
-const ME_COOLDOWN_MS = 20 * 1000;
+const ME_COOLDOWN_MS = 90 * 1000;
 const PROFILE_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
 let inflightMeLookup: Promise<SpotifyUser | null> | null = null;
@@ -104,6 +108,7 @@ async function devFallbackUser(): Promise<SpotifyUser | null> {
 type FetchMeOptions = {
   max429Retries?: number;
   mayRefreshToken?: boolean;
+  force?: boolean;
 };
 
 async function fetchMeAndPersist(
@@ -111,14 +116,14 @@ async function fetchMeAndPersist(
   persistCookies: boolean,
   options?: FetchMeOptions
 ): Promise<SpotifyUser | null> {
+  if (isMeBlocked() && !options?.force) {
+    return null;
+  }
+
   const max429Retries = options?.max429Retries ?? 0;
-  const fetchMe =
-    max429Retries > 0
-      ? () => getSpotifyUserWithRetries(accessToken)
-      : () => getSpotifyUser(accessToken);
 
   try {
-    const user = await fetchMe();
+    const user = await fetchSpotifyMe(accessToken, { max429Retries });
     if (persistCookies) {
       await persistSpotifyUserCookies(user);
     } else {
@@ -139,7 +144,11 @@ async function fetchMeAndPersist(
     }
 
     if (message.includes("429")) {
-      meCooldownUntil = Date.now() + ME_COOLDOWN_MS;
+      const blockedSec = getMeBlockedRemainingSeconds();
+      meCooldownUntil = Date.now() + Math.max(ME_COOLDOWN_MS, blockedSec * 1000);
+      if (blockedSec > 0) {
+        markMeRateLimited(blockedSec * 1000);
+      }
     } else if (message) {
       console.error("[fetchMeAndPersist]", message);
     }
@@ -224,8 +233,12 @@ export async function bootstrapSpotifyUser(): Promise<SpotifyUser | null> {
   const accessToken = await getValidAccessToken({ refresh: true });
   if (!accessToken) return null;
 
+  if (isMeBlocked()) {
+    return null;
+  }
+
   const fromMe = await fetchMeAndPersist(accessToken, true, {
-    max429Retries: 2,
+    max429Retries: 1,
     mayRefreshToken: true,
   });
   if (fromMe) return fromMe;
@@ -243,6 +256,10 @@ export function clearSpotifyUserSessionCache(): void {
   memoryCachedUser = null;
   meCooldownUntil = 0;
   inflightMeLookup = null;
+}
+
+export function getSpotifyMeRateLimitSeconds(): number {
+  return getMeBlockedRemainingSeconds();
 }
 
 /** @deprecated Use resolveSpotifyUser */
