@@ -17,29 +17,41 @@ export function ProfileView() {
 
     async function loadProfile() {
       try {
-        await fetch("/api/auth/bootstrap", { method: "POST" });
-        const res = await fetch("/api/profile");
-        if (res.status === 401) {
-          window.location.href = "/api/auth/logout?redirect=/login";
-          return;
-        }
-        if (!res.ok) {
-          throw new Error("Failed to load profile");
-        }
+        for (let attempt = 0; attempt < 4; attempt++) {
+          await fetch("/api/auth/bootstrap", { method: "POST" });
+          const res = await fetch("/api/profile");
+          if (res.status === 401) {
+            window.location.href = "/api/auth/logout?redirect=/login";
+            return;
+          }
+          if (!res.ok) {
+            throw new Error("Failed to load profile");
+          }
 
-        const data = await res.json();
-        if (cancelled) return;
+          const data = await res.json();
+          if (cancelled) return;
 
-        setDisplayName(
-          data.profile?.display_name ??
-            data.spotifyUser?.display_name ??
-            data.spotifyUser?.id ??
-            "Profile"
-        );
-        setRatings((data.ratings ?? []).map((r: SongRating) => normalizeSongRating(r)));
-        if (data.warning) {
-          setError(data.warning);
+          if (data.spotifyUser?.id && !data.warning) {
+            setDisplayName(
+              data.profile?.display_name ??
+                data.spotifyUser?.display_name ??
+                data.spotifyUser?.id ??
+                "Profile"
+            );
+            setRatings((data.ratings ?? []).map((r: SongRating) => normalizeSongRating(r)));
+            setError(null);
+            return;
+          }
+
+          if (data.warning) {
+            setError(data.warning);
+          }
+
+          if (attempt < 3) {
+            await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
+          }
         }
+        return;
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load profile");
@@ -69,12 +81,22 @@ export function ProfileView() {
         {error && !loading && (
           <div className="glass-card mb-6 space-y-3 p-4 text-center text-amber-300">
             <p>{error}</p>
-            <a
-              href="/api/auth/logout?redirect=/login"
-              className="inline-block text-sm font-medium text-[#1db954] hover:underline"
-            >
-              Sign out and connect again
-            </a>
+            <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+              <a
+                href="/api/auth/session-health"
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm font-medium text-zinc-400 hover:underline"
+              >
+                View session diagnostics
+              </a>
+              <a
+                href="/api/auth/logout?redirect=/login"
+                className="text-sm font-medium text-[#1db954] hover:underline"
+              >
+                Sign out and connect again
+              </a>
+            </div>
           </div>
         )}
         {!loading && (

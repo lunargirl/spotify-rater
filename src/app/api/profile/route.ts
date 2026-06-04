@@ -37,7 +37,7 @@ export async function GET() {
       return NextResponse.json({
         ...emptyProfilePayload(),
         warning:
-          "Spotify profile is temporarily unavailable. Wait a moment and refresh, or log out and back in.",
+          "Spotify profile is temporarily unavailable. Open /api/auth/session-health for diagnostics, then sign out and log in again.",
       });
     }
 

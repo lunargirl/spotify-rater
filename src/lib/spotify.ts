@@ -7,7 +7,7 @@ const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
 const SPOTIFY_API_BASE = "https://api.spotify.com/v1";
 
 /** Bump when scopes change so users are prompted to re-authorize. */
-export const SPOTIFY_SCOPES_VERSION = "2";
+export const SPOTIFY_SCOPES_VERSION = "3";
 
 export const SPOTIFY_SCOPE_LIST = [
   "user-read-currently-playing",
@@ -279,5 +279,5 @@ export async function getSpotifyUser(accessToken: string): Promise<SpotifyUser> 
 
 /** Bootstrap / callback — retries 429s so profile cookies can be set after login. */
 export async function getSpotifyUserWithRetries(accessToken: string): Promise<SpotifyUser> {
-  return spotifyFetch<SpotifyUser>("/me", accessToken, undefined, 0, 2);
+  return spotifyFetch<SpotifyUser>("/me", accessToken, undefined, 0, 3);
 }

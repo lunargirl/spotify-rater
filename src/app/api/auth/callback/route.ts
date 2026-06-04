@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import {
   getAppUrl,
@@ -6,18 +5,17 @@ import {
   resolveRedirectUriFromRequest,
 } from "@/lib/env";
 import {
-  buildSessionCookieOptions,
+  applySpotifyTokensOnResponse,
   clearAuthCookiesOnResponse,
   persistUserIdOnResponse,
 } from "@/lib/session-cookies";
-import { clearSpotifyUserSessionCache } from "@/lib/session-user";
+import { clearSpotifyUserSessionCache, persistSpotifyUserCookies } from "@/lib/session-user";
 import {
   exchangeCodeForTokens,
   getSpotifyUserWithRetries,
   SPOTIFY_SCOPES_VERSION,
 } from "@/lib/spotify";
 import { lookupUserByRefreshToken } from "@/lib/spotify-session-link";
-import { persistSpotifyUserCookies } from "@/lib/session-user";
 
 export const dynamic = "force-dynamic";
 
@@ -58,65 +56,48 @@ export async function GET(request: NextRequest) {
 
   try {
     const tokens = await exchangeCodeForTokens(code, redirectUri);
-    const cookieStore = await cookies();
-
-    cookieStore.set(
-      "spotify_access_token",
-      tokens.access_token,
-      buildSessionCookieOptions(tokens.expires_in)
-    );
-
     const refreshToken =
       tokens.refresh_token ?? request.cookies.get("spotify_refresh_token")?.value;
-    if (refreshToken) {
-      cookieStore.set(
-        "spotify_refresh_token",
-        refreshToken,
-        buildSessionCookieOptions(60 * 60 * 24 * 30)
-      );
-    } else {
+
+    if (!refreshToken) {
       console.warn("[Spotify callback] No refresh token returned — future refresh may fail");
     }
-
-    cookieStore.set(
-      "spotify_token_expires_at",
-      String(Date.now() + tokens.expires_in * 1000),
-      buildSessionCookieOptions(tokens.expires_in)
-    );
-
-    cookieStore.set(
-      "spotify_scopes_version",
-      SPOTIFY_SCOPES_VERSION,
-      buildSessionCookieOptions(60 * 60 * 24 * 30)
-    );
-
-    cookieStore.delete("spotify_oauth_state");
 
     let profile: Awaited<ReturnType<typeof getSpotifyUserWithRetries>> | null = null;
 
     try {
       profile = await getSpotifyUserWithRetries(tokens.access_token);
-      await persistSpotifyUserCookies(profile);
     } catch (profileError) {
       console.warn(
         "[Spotify callback] Profile fetch failed:",
         profileError instanceof Error ? profileError.message : profileError
       );
       if (refreshToken) {
-        const linked = await lookupUserByRefreshToken(refreshToken);
-        if (linked) {
-          profile = linked;
-          await persistSpotifyUserCookies(linked);
+        profile = await lookupUserByRefreshToken(refreshToken);
+        if (profile) {
           console.info("[Spotify callback] Restored profile from refresh-token link");
         }
       }
     }
 
-    console.info("[Spotify callback] Login succeeded, redirecting to dashboard");
-    const response = NextResponse.redirect(new URL("/dashboard", appUrl));
+    if (profile) {
+      try {
+        await persistSpotifyUserCookies(profile);
+      } catch (persistError) {
+        console.warn("[Spotify callback] persistSpotifyUserCookies:", persistError);
+      }
+    }
+
+    const response = NextResponse.redirect(new URL("/api/auth/complete", appUrl));
+    applySpotifyTokensOnResponse(response, tokens, {
+      refreshToken: refreshToken ?? undefined,
+      scopesVersion: SPOTIFY_SCOPES_VERSION,
+    });
     if (profile) {
       persistUserIdOnResponse(response, profile);
     }
+
+    console.info("[Spotify callback] Tokens set, continuing to /api/auth/complete");
     return response;
   } catch (err) {
     console.error("[Spotify callback] Token exchange failed", {

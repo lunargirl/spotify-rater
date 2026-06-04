@@ -75,3 +75,43 @@ export function persistUserIdOnResponse(
     response.cookies.set("spotify_display_name", user.display_name, opts);
   }
 }
+
+export type SpotifyTokenPayload = {
+  access_token: string;
+  expires_in: number;
+  refresh_token?: string;
+};
+
+/** All auth cookies on one redirect — avoids Vercel dropping cookies().set() before redirect. */
+export function applySpotifyTokensOnResponse(
+  response: NextResponse,
+  tokens: SpotifyTokenPayload,
+  options?: { refreshToken?: string; scopesVersion?: string }
+): void {
+  const accessOpts = buildSessionCookieOptions(tokens.expires_in);
+  response.cookies.set("spotify_access_token", tokens.access_token, accessOpts);
+  response.cookies.set(
+    "spotify_token_expires_at",
+    String(Date.now() + tokens.expires_in * 1000),
+    accessOpts
+  );
+
+  const refreshToken = options?.refreshToken ?? tokens.refresh_token;
+  if (refreshToken) {
+    response.cookies.set(
+      "spotify_refresh_token",
+      refreshToken,
+      buildSessionCookieOptions(60 * 60 * 24 * 30)
+    );
+  }
+
+  if (options?.scopesVersion) {
+    response.cookies.set(
+      "spotify_scopes_version",
+      options.scopesVersion,
+      buildSessionCookieOptions(60 * 60 * 24 * 30)
+    );
+  }
+
+  response.cookies.set("spotify_oauth_state", "", { path: "/", maxAge: 0 });
+}

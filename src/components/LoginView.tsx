@@ -18,6 +18,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   auth_failed: "Could not complete Spotify login. Check Vercel SPOTIFY_CLIENT_SECRET matches your Dashboard app.",
   server_error:
     "Spotify could not finish login (their server_error). In Development mode, add your Spotify account email under Users and Access in the Developer Dashboard, then try again in a private window.",
+  profile_unavailable:
+    "Login tokens were saved but your Spotify profile could not be loaded. Check Vercel SPOTIFY_CLIENT_SECRET matches your Dashboard app, then sign in again in a private window.",
 };
 
 export function LoginView({

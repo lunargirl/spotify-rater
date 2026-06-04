@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    let user = await resolveSpotifyUser();
+    let user = await resolveSpotifyUser({ allowSessionWrites: true });
     if (!user) {
       user = await bootstrapSpotifyUser();
     }
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Your Spotify profile is not loaded yet. Wait a minute, refresh, or sign out and back in.",
+            "Your Spotify profile is not loaded yet. Open /api/auth/session-health in a new tab, then sign out and log in again.",
         },
         { status: 503 }
       );
