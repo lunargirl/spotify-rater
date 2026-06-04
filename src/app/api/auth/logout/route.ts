@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAppUrl } from "@/lib/env";
+import { getAppUrl, resolvePublicOriginFromRequest } from "@/lib/env";
 import { clearSpotifyUserSessionCache } from "@/lib/session-user";
 
 function clearAuthCookies(response: NextResponse) {
@@ -25,12 +25,10 @@ export async function GET(request: NextRequest) {
   const redirectParam = request.nextUrl.searchParams.get("redirect") ?? "/login";
   const redirectPath = redirectParam.startsWith("/") ? redirectParam : "/login";
 
-  let redirectUrl: URL;
-  try {
-    redirectUrl = new URL(redirectPath, getAppUrl());
-  } catch {
-    redirectUrl = new URL(redirectPath, request.url);
-  }
+  const origin = resolvePublicOriginFromRequest(request) ?? getAppUrl();
+  const redirectUrl = origin
+    ? new URL(redirectPath, origin)
+    : new URL(redirectPath, request.url);
 
   clearSpotifyUserSessionCache();
   const response = NextResponse.redirect(redirectUrl);

@@ -112,14 +112,26 @@ export function resolveAppUrl(): string | null {
     return normalizePublicUrl(explicit);
   }
 
+  const vercelEnv = readEnv("VERCEL_ENV");
+  const deploymentHost = readEnv("VERCEL_URL");
   const productionHost = readEnv("VERCEL_PROJECT_PRODUCTION_URL");
-  if (productionHost) {
+
+  // Preview deployments (e.g. spotify-rater-delta.vercel.app) must not use the
+  // production alias — OAuth redirect URIs are registered per hostname.
+  if (vercelEnv === "preview" && deploymentHost) {
+    return normalizePublicUrl(deploymentHost);
+  }
+
+  if (vercelEnv === "production" && productionHost) {
     return normalizePublicUrl(productionHost);
   }
 
-  const previewHost = readEnv("VERCEL_URL");
-  if (previewHost) {
-    return normalizePublicUrl(previewHost);
+  if (deploymentHost) {
+    return normalizePublicUrl(deploymentHost);
+  }
+
+  if (productionHost) {
+    return normalizePublicUrl(productionHost);
   }
 
   return null;

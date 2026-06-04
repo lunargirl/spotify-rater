@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSpotifyUser } from "@/lib/auth-api";
+import { bootstrapSpotifyUser } from "@/lib/session-user";
 import { getRouteAccessToken } from "@/lib/spotify";
 import {
   buildProfileAnalytics,
@@ -27,7 +28,10 @@ export async function GET() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const user = await requireSpotifyUser({ allowSessionWrites: true });
+    let user = await requireSpotifyUser({ allowSessionWrites: true });
+    if (!user) {
+      user = await bootstrapSpotifyUser();
+    }
 
     if (!user) {
       return NextResponse.json({

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getSpotifyClientIdForDisplay,
   readEnvForDebug,
+  resolveAppUrl,
+  resolvePublicOriginFromRequest,
   resolveRedirectUriFromRequest,
 } from "@/lib/env";
 import { getSpotifyAuthUrl } from "@/lib/spotify";
@@ -9,6 +11,8 @@ import { getSpotifyAuthUrl } from "@/lib/spotify";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const requestOrigin = resolvePublicOriginFromRequest(request);
+  const resolvedAppUrl = resolveAppUrl();
   const redirectUri = resolveRedirectUriFromRequest(request);
   const clientId = getSpotifyClientIdForDisplay();
   const explicitRedirect = readEnvForDebug("SPOTIFY_REDIRECT_URI");
@@ -41,7 +45,16 @@ export async function GET(request: NextRequest) {
     spotifyAcceptsRedirect,
     clientId: clientId ?? null,
     redirectUri,
+    requestOrigin,
+    resolvedAppUrl,
+    vercelEnv: readEnvForDebug("VERCEL_ENV") ?? null,
+    vercelUrl: readEnvForDebug("VERCEL_URL") ?? null,
+    vercelProductionUrl: readEnvForDebug("VERCEL_PROJECT_PRODUCTION_URL") ?? null,
     host: request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
+    hostMismatchWarning:
+      requestOrigin && resolvedAppUrl && requestOrigin !== resolvedAppUrl
+        ? `You opened ${requestOrigin} but server default URL is ${resolvedAppUrl}. Register BOTH redirect URIs in Spotify, or set NEXT_PUBLIC_APP_URL to the host you use.`
+        : null,
     sampleAuthorizeUrl,
     envOverrides: {
       SPOTIFY_REDIRECT_URI: explicitRedirect ?? null,
