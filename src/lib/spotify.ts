@@ -27,19 +27,19 @@ export function getSpotifyAuthUrl(
   const { clientId, redirectUri: configRedirectUri } = getSpotifyConfig();
   const redirectUri = options?.redirectUri ?? configRedirectUri;
 
-  const params = new URLSearchParams({
-    client_id: clientId,
-    response_type: "code",
-    redirect_uri: redirectUri,
-    scope: SPOTIFY_SCOPES,
-    state,
-  });
+  const query = [
+    `client_id=${encodeURIComponent(clientId)}`,
+    "response_type=code",
+    `redirect_uri=${encodeURIComponent(redirectUri)}`,
+    `scope=${encodeURIComponent(SPOTIFY_SCOPES)}`,
+    `state=${encodeURIComponent(state)}`,
+  ];
 
   if (options?.showDialog) {
-    params.set("show_dialog", "true");
+    query.push("show_dialog=true");
   }
 
-  return `https://accounts.spotify.com/authorize?${params.toString()}`;
+  return `https://accounts.spotify.com/authorize?${query.join("&")}`;
 }
 
 /** App-only token for public catalog metadata (/tracks, /artists). */
