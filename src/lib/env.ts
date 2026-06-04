@@ -1,10 +1,31 @@
 const PLACEHOLDER_MARKERS = ["your_", "your-project"];
 
+function sanitizeEnvValue(value: string): string {
+  let trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    trimmed = trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
 function readEnv(name: string): string | undefined {
-  const value = process.env[name]?.trim();
+  const raw = process.env[name];
+  if (!raw) return undefined;
+  const value = sanitizeEnvValue(raw);
   if (!value) return undefined;
   if (PLACEHOLDER_MARKERS.some((marker) => value.includes(marker))) return undefined;
   return value;
+}
+
+/** Debug route only — exposes whether env vars are set (not secret values). */
+export function readEnvForDebug(name: string): string | undefined {
+  const raw = process.env[name];
+  if (!raw) return undefined;
+  const value = sanitizeEnvValue(raw);
+  return value || undefined;
 }
 
 function requireEnv(name: string): string {
