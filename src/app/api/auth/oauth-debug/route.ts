@@ -17,10 +17,28 @@ export async function GET(request: NextRequest) {
     ? getSpotifyAuthUrl("debug-state", { redirectUri })
     : null;
 
+  let spotifyAuthorizeStatus: number | null = null;
+  if (sampleAuthorizeUrl) {
+    try {
+      const probe = await fetch(sampleAuthorizeUrl, { redirect: "manual" });
+      spotifyAuthorizeStatus = probe.status;
+    } catch {
+      spotifyAuthorizeStatus = null;
+    }
+  }
+
+  const spotifyAcceptsRedirect =
+    spotifyAuthorizeStatus === 200 ||
+    spotifyAuthorizeStatus === 302 ||
+    spotifyAuthorizeStatus === 303;
+
   return NextResponse.json({
     ok: Boolean(clientId && redirectUri),
-    verdict:
-      "Server config is correct. If Spotify still says 'Not matching configuration', the Dashboard entry is not saved on this Client ID or the app is not a Web API app.",
+    verdict: spotifyAcceptsRedirect
+      ? "Spotify accepts this client_id + redirect_uri (login page reachable). A browser 400 is usually a stale tab, extension, or an old bookmarked authorize URL — use Incognito and open /api/auth/spotify from your site."
+      : "Server config is correct. If Spotify still says 'Not matching configuration', the Dashboard entry is not saved on this Client ID or the app is not a Web API app.",
+    spotifyAuthorizeStatus,
+    spotifyAcceptsRedirect,
     clientId: clientId ?? null,
     redirectUri,
     host: request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
