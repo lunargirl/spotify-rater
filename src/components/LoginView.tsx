@@ -69,27 +69,39 @@ export function LoginView({
             <p className="font-medium text-zinc-400">Spotify Developer Dashboard checklist</p>
             {spotifyClientIdHint && (
               <p className="mt-2">
-                Client ID in Vercel must match this app:{" "}
-                <span className="font-mono text-zinc-300">{spotifyClientIdHint}</span>
+                In{" "}
+                <a
+                  href="https://developer.spotify.com/dashboard"
+                  className="text-accent underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Spotify Dashboard
+                </a>
+                , open the app whose Client ID is exactly:
               </p>
             )}
-            <p className="mt-2">
-              Redirect URI for <span className="text-zinc-400">this hostname</span> (exact match):
+            {spotifyClientIdHint && (
+              <p className="mt-1 break-all font-mono text-[11px] text-zinc-300">
+                {spotifyClientIdHint}
+              </p>
+            )}
+            <p className="mt-3">
+              Under <span className="text-zinc-400">Redirect URIs</span>, add this line (Spotify
+              error &quot;Not matching configuration&quot; means it is missing on that app):
             </p>
-            <p className="mt-2 break-all font-mono text-[11px] text-zinc-300">
+            <p className="mt-2 break-all rounded-lg bg-zinc-950 px-2 py-2 font-mono text-[11px] text-zinc-300">
               {spotifyRedirectUri}
             </p>
             <ul className="mt-3 list-inside list-disc space-y-1 text-zinc-500">
-              <li>Open that app in the dashboard → Settings → Redirect URIs → paste → Save</li>
+              <li>Type the URI → click Add → click Save at the bottom of Settings</li>
+              <li>No trailing slash; must be https (not http)</li>
+              <li>Path must be /api/auth/callback — not just the domain</li>
               <li>
-                Remove any old <span className="font-mono">127.0.0.1</span> URI from Vercel env if
-                you are not testing locally
+                If Vercel also gives you another URL (e.g. spotify-rater.vercel.app), add a
+                second Redirect URI for that host too
               </li>
-              <li>Development mode: add your Spotify email under Users and Access</li>
-              <li>
-                If you use a custom domain, register its callback too (not only{" "}
-                <span className="font-mono">*.vercel.app</span>)
-              </li>
+              <li>Development mode: your Spotify email under Users and Access</li>
             </ul>
           </div>
         )}

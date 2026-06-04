@@ -162,9 +162,7 @@ export function tryGetSpotifyRedirectUri(): string | null {
 }
 
 export function getSpotifyClientIdForDisplay(): string | null {
-  const id = readEnv("SPOTIFY_CLIENT_ID");
-  if (!id || id.length < 8) return id ?? null;
-  return `${id.slice(0, 4)}…${id.slice(-4)}`;
+  return readEnv("SPOTIFY_CLIENT_ID") ?? null;
 }
 
 export function describeMissingDeployConfig(): string | null {
