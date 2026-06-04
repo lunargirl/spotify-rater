@@ -5,6 +5,8 @@ interface LoginViewProps {
   spotifyAuthUrl: string | null;
   /** Shown so you can paste the exact URI into the Spotify Developer Dashboard. */
   spotifyRedirectUri?: string | null;
+  /** Masked client id — must match the Spotify app where the redirect URI is registered. */
+  spotifyClientIdHint?: string | null;
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -18,6 +20,7 @@ export function LoginView({
   configError,
   spotifyAuthUrl,
   spotifyRedirectUri,
+  spotifyClientIdHint,
 }: LoginViewProps) {
   const errorMessage = errorCode
     ? ERROR_MESSAGES[errorCode] ?? "Something went wrong."
@@ -63,18 +66,31 @@ export function LoginView({
 
         {spotifyRedirectUri && (
           <div className="mt-8 rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-left text-xs text-zinc-500">
-            <p className="font-medium text-zinc-400">Spotify Developer Dashboard setup</p>
+            <p className="font-medium text-zinc-400">Spotify Developer Dashboard checklist</p>
+            {spotifyClientIdHint && (
+              <p className="mt-2">
+                Client ID in Vercel must match this app:{" "}
+                <span className="font-mono text-zinc-300">{spotifyClientIdHint}</span>
+              </p>
+            )}
             <p className="mt-2">
-              Add this <span className="text-zinc-400">Redirect URI</span> (exact match, or Spotify
-              returns 400):
+              Redirect URI for <span className="text-zinc-400">this hostname</span> (exact match):
             </p>
             <p className="mt-2 break-all font-mono text-[11px] text-zinc-300">
               {spotifyRedirectUri}
             </p>
-            <p className="mt-2">
-              In <span className="text-zinc-400">Development mode</span>, add your Spotify account
-              under Users and Access.
-            </p>
+            <ul className="mt-3 list-inside list-disc space-y-1 text-zinc-500">
+              <li>Open that app in the dashboard → Settings → Redirect URIs → paste → Save</li>
+              <li>
+                Remove any old <span className="font-mono">127.0.0.1</span> URI from Vercel env if
+                you are not testing locally
+              </li>
+              <li>Development mode: add your Spotify email under Users and Access</li>
+              <li>
+                If you use a custom domain, register its callback too (not only{" "}
+                <span className="font-mono">*.vercel.app</span>)
+              </li>
+            </ul>
           </div>
         )}
 

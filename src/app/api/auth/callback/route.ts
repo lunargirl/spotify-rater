@@ -1,6 +1,10 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { getAppUrl, getSpotifyRedirectUri } from "@/lib/env";
+import {
+  getAppUrl,
+  resolvePublicOriginFromRequest,
+  resolveRedirectUriFromRequest,
+} from "@/lib/env";
 import { buildSessionCookieOptions } from "@/lib/session-cookies";
 import { exchangeCodeForTokens, getSpotifyUser, SPOTIFY_SCOPES_VERSION } from "@/lib/spotify";
 import { lookupUserByRefreshToken } from "@/lib/spotify-session-link";
@@ -19,8 +23,8 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const state = searchParams.get("state");
   const error = searchParams.get("error");
-  const appUrl = getAppUrl();
-  const redirectUri = getSpotifyRedirectUri();
+  const appUrl = resolvePublicOriginFromRequest(request) ?? getAppUrl();
+  const redirectUri = resolveRedirectUriFromRequest(request);
 
   if (error) {
     return loginErrorRedirect(appUrl, error);

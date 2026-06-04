@@ -3,8 +3,8 @@ import { CanonicalHostRedirect } from "@/components/CanonicalHostRedirect";
 import { LoginView } from "@/components/LoginView";
 import {
   describeMissingDeployConfig,
-  tryGetAppUrl,
-  tryGetSpotifyRedirectUri,
+  getSpotifyClientIdForDisplay,
+  resolvePublicOriginFromHeaders,
 } from "@/lib/env";
 import { safeShouldRedirectFromLogin } from "@/lib/safe-server";
 
@@ -20,9 +20,10 @@ export default async function LoginPage({
   }
 
   const params = await searchParams;
-  const appUrl = tryGetAppUrl();
+  const appUrl = await resolvePublicOriginFromHeaders();
   const configError = describeMissingDeployConfig();
   const spotifyAuthUrl = appUrl && !configError ? `${appUrl}/api/auth/spotify` : null;
+  const spotifyRedirectUri = appUrl ? `${appUrl}/api/auth/callback` : null;
 
   return (
     <>
@@ -31,7 +32,8 @@ export default async function LoginPage({
         errorCode={params.error ?? null}
         spotifyAuthUrl={spotifyAuthUrl}
         configError={configError}
-        spotifyRedirectUri={tryGetSpotifyRedirectUri()}
+        spotifyRedirectUri={spotifyRedirectUri}
+        spotifyClientIdHint={getSpotifyClientIdForDisplay()}
       />
     </>
   );

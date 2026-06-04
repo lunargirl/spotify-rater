@@ -25,6 +25,59 @@ function normalizePublicUrl(url: string): string {
   return `https://${trimmed}`;
 }
 
+export function normalizeRedirectUri(uri: string): string {
+  return uri.trim().replace(/\/$/, "");
+}
+
+function parseForwardedHeader(value: string | null): string | undefined {
+  return value?.split(",")[0]?.trim() || undefined;
+}
+
+/** Origin for the current HTTP request (Vercel host the user actually opened). */
+export function resolvePublicOriginFromRequest(
+  request: Request & { nextUrl?: { host: string; protocol: string } }
+): string | null {
+  const forwardedHost = parseForwardedHeader(request.headers.get("x-forwarded-host"));
+  const host =
+    forwardedHost ??
+    parseForwardedHeader(request.headers.get("host")) ??
+    request.nextUrl?.host;
+
+  if (!host || host.includes("localhost")) {
+    return null;
+  }
+
+  const forwardedProto = parseForwardedHeader(request.headers.get("x-forwarded-proto"));
+  const proto =
+    forwardedProto ?? request.nextUrl?.protocol.replace(":", "") ?? "https";
+
+  return normalizePublicUrl(`${proto}://${host}`);
+}
+
+export async function resolvePublicOriginFromHeaders(): Promise<string | null> {
+  const { headers } = await import("next/headers");
+  const h = await headers();
+  const host = parseForwardedHeader(h.get("x-forwarded-host")) ?? parseForwardedHeader(h.get("host"));
+
+  if (!host || host.includes("localhost")) {
+    return resolveAppUrl();
+  }
+
+  const proto = parseForwardedHeader(h.get("x-forwarded-proto")) ?? "https";
+  return normalizePublicUrl(`${proto}://${host}`);
+}
+
+/** OAuth callback URL for this request — must match Spotify Dashboard and token exchange. */
+export function resolveRedirectUriFromRequest(
+  request: Request & { nextUrl?: { host: string; protocol: string } }
+): string {
+  const origin = resolvePublicOriginFromRequest(request);
+  if (origin) {
+    return normalizeRedirectUri(`${origin}/api/auth/callback`);
+  }
+  return normalizeRedirectUri(getSpotifyRedirectUri());
+}
+
 /**
  * Public app origin. Explicit NEXT_PUBLIC_APP_URL wins; on Vercel we fall back to
  * VERCEL_PROJECT_PRODUCTION_URL / VERCEL_URL so deploys work without duplicating the hostname.
@@ -59,9 +112,9 @@ export function resolveSpotifyRedirectUri(appUrl: string): string {
         "SPOTIFY_REDIRECT_URI must not use localhost. Use http://127.0.0.1:3000/api/auth/callback instead."
       );
     }
-    return explicit;
+    return normalizeRedirectUri(explicit);
   }
-  return `${appUrl}/api/auth/callback`;
+  return normalizeRedirectUri(`${appUrl}/api/auth/callback`);
 }
 
 export function getSpotifyRedirectUri(): string {
@@ -106,6 +159,12 @@ export function tryGetSpotifyRedirectUri(): string | null {
   } catch {
     return null;
   }
+}
+
+export function getSpotifyClientIdForDisplay(): string | null {
+  const id = readEnv("SPOTIFY_CLIENT_ID");
+  if (!id || id.length < 8) return id ?? null;
+  return `${id.slice(0, 4)}…${id.slice(-4)}`;
 }
 
 export function describeMissingDeployConfig(): string | null {

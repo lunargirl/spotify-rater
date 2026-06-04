@@ -20,8 +20,12 @@ export const SPOTIFY_SCOPES = SPOTIFY_SCOPE_LIST.join(" ");
 
 let cachedAppToken: { token: string; expiresAt: number } | null = null;
 
-export function getSpotifyAuthUrl(state: string, options?: { showDialog?: boolean }): string {
-  const { clientId, redirectUri } = getSpotifyConfig();
+export function getSpotifyAuthUrl(
+  state: string,
+  options?: { showDialog?: boolean; redirectUri?: string }
+): string {
+  const { clientId, redirectUri: configRedirectUri } = getSpotifyConfig();
+  const redirectUri = options?.redirectUri ?? configRedirectUri;
 
   const params = new URLSearchParams({
     client_id: clientId,
