@@ -1,0 +1,145 @@
+@import "tailwindcss";
+
+:root {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --accent: #1db954;
+  --accent-hover: #1ed760;
+  --accent-muted: rgba(29, 185, 84, 0.15);
+  --accent-text: #000000;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, var(--accent-muted), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, var(--accent-muted), transparent);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.glass-card {
+  @apply rounded-2xl border border-zinc-800/60 bg-zinc-900/40 backdrop-blur-sm;
+}
+
+.bg-accent {
+  background-color: var(--accent);
+}
+.bg-accent-muted {
+  background-color: var(--accent-muted);
+}
+.text-accent {
+  color: var(--accent);
+}
+.text-on-accent {
+  color: var(--accent-text);
+}
+.border-accent {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.ring-accent {
+  --tw-ring-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.hover\:bg-accent-hover:hover {
+  background-color: var(--accent-hover);
+}
+.focus-accent:focus {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  outline: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* Custom rating slider — 16px track, centered thumb */
+.rating-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.rating-slider::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  height: 16px;
+  border-radius: 0.5rem;
+  background: linear-gradient(
+    to right,
+    var(--slider-color, var(--accent)) 0%,
+    var(--slider-color, var(--accent)) var(--slider-percent),
+    rgb(39 39 42) var(--slider-percent),
+    rgb(39 39 42) 100%
+  );
+}
+
+.rating-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -4px;
+  border: none;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  cursor: grab;
+}
+
+.rating-slider:active::-webkit-slider-thumb {
+  cursor: grabbing;
+}
+
+.rating-slider::-moz-range-track {
+  height: 16px;
+  border: none;
+  border-radius: 0.5rem;
+  background: linear-gradient(
+    to right,
+    var(--slider-color, var(--accent)) 0%,
+    var(--slider-color, var(--accent)) var(--slider-percent),
+    rgb(39 39 42) var(--slider-percent),
+    rgb(39 39 42) 100%
+  );
+}
+
+.rating-slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  cursor: grab;
+}
+
+.rating-slider::-moz-range-thumb:active {
+  cursor: grabbing;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(63 63 70);
+  border-radius: 3px;
+}
