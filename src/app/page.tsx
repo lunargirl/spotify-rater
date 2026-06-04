@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { CanonicalHostRedirect } from "@/components/CanonicalHostRedirect";
 import { LoginView } from "@/components/LoginView";
-import { tryGetAppUrl } from "@/lib/env";
+import { describeMissingDeployConfig, tryGetAppUrl } from "@/lib/env";
 import { safeShouldRedirectFromLogin } from "@/lib/safe-server";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,8 @@ export default async function Home({
 
   const params = await searchParams;
   const appUrl = tryGetAppUrl();
-  const spotifyAuthUrl = appUrl ? `${appUrl}/api/auth/spotify` : null;
+  const configError = describeMissingDeployConfig();
+  const spotifyAuthUrl = appUrl && !configError ? `${appUrl}/api/auth/spotify` : null;
 
   return (
     <>
@@ -25,7 +26,7 @@ export default async function Home({
       <LoginView
         errorCode={params.error ?? null}
         spotifyAuthUrl={spotifyAuthUrl}
-        configError={appUrl ? null : "Server is missing NEXT_PUBLIC_APP_URL (and related env vars)."}
+        configError={configError}
       />
     </>
   );
