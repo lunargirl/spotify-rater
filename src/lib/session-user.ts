@@ -5,9 +5,8 @@ import {
 } from "@/lib/spotify";
 import {
   fetchSpotifyMe,
-  getMeBlockedRemainingSeconds,
   getMeBlockedRemainingSecondsEffective,
-  isMeBlocked,
+  isMeBlockedEffective,
   markMeRateLimited,
 } from "@/lib/spotify-me";
 import {
@@ -145,7 +144,7 @@ async function fetchMeAndPersist(
     }
 
     if (message.includes("429")) {
-      const blockedSec = getMeBlockedRemainingSeconds();
+      const blockedSec = await getMeBlockedRemainingSecondsEffective();
       meCooldownUntil = Date.now() + Math.max(ME_COOLDOWN_MS, blockedSec * 1000);
       if (blockedSec > 0) {
         markMeRateLimited(blockedSec * 1000);
