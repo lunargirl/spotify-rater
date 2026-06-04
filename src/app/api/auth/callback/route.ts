@@ -11,7 +11,11 @@ import {
 } from "@/lib/session-cookies";
 import { clearSpotifyUserSessionCache, persistSpotifyUserCookies } from "@/lib/session-user";
 import { exchangeCodeForTokens, SPOTIFY_SCOPES_VERSION } from "@/lib/spotify";
-import { fetchSpotifyMe } from "@/lib/spotify-me";
+import {
+  fetchSpotifyMe,
+  getMeBlockedRemainingSecondsFromRequest,
+  persistMeRateLimitOnResponse,
+} from "@/lib/spotify-me";
 import { lookupUserByRefreshToken } from "@/lib/spotify-session-link";
 
 export const dynamic = "force-dynamic";
@@ -61,14 +65,15 @@ export async function GET(request: NextRequest) {
     }
 
     let profile: Awaited<ReturnType<typeof fetchSpotifyMe>> | null = null;
+    let profileRateLimited = false;
 
     try {
       profile = await fetchSpotifyMe(tokens.access_token, { max429Retries: 0 });
     } catch (profileError) {
-      console.warn(
-        "[Spotify callback] Profile fetch failed:",
-        profileError instanceof Error ? profileError.message : profileError
-      );
+      const profileMessage =
+        profileError instanceof Error ? profileError.message : String(profileError);
+      profileRateLimited = profileMessage.includes("429");
+      console.warn("[Spotify callback] Profile fetch failed:", profileMessage);
       if (refreshToken) {
         profile = await lookupUserByRefreshToken(refreshToken);
         if (profile) {
@@ -92,6 +97,9 @@ export async function GET(request: NextRequest) {
     });
     if (profile) {
       persistUserIdOnResponse(response, profile);
+    } else if (profileRateLimited) {
+      const sec = Math.max(getMeBlockedRemainingSecondsFromRequest(request), 30);
+      persistMeRateLimitOnResponse(response, sec);
     }
 
     console.info("[Spotify callback] Tokens set, continuing to /api/auth/complete");

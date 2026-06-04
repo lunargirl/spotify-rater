@@ -13,7 +13,7 @@ export async function POST() {
 
   const user = await bootstrapSpotifyUser();
   if (!user) {
-    const retryAfterSeconds = getSpotifyMeRateLimitSeconds();
+    const retryAfterSeconds = await getSpotifyMeRateLimitSeconds();
     const rateLimited = retryAfterSeconds > 0;
     return NextResponse.json(
       {

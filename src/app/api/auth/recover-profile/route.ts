@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRouteAccessToken } from "@/lib/spotify";
 import {
   fetchSpotifyMe,
-  getMeBlockedRemainingSeconds,
-  isMeBlocked,
+  getMeBlockedRemainingSecondsFromRequest,
+  isMeBlockedFromRequest,
 } from "@/lib/spotify-me";
-import { persistUserIdOnResponse } from "@/lib/session-cookies";
+import {
+  hasAuthSessionTokensFromRequest,
+  persistUserIdOnResponse,
+} from "@/lib/session-cookies";
 import { bootstrapSpotifyUser, persistSpotifyUserCookies } from "@/lib/session-user";
 
 export const dynamic = "force-dynamic";
@@ -20,11 +23,17 @@ export async function GET(request: NextRequest) {
     process.env.NEXT_PUBLIC_APP_URL ||
     "https://spotify-rater-delta.vercel.app";
 
-  const result = await recoverProfile();
+  const result = await recoverProfile(request);
+  const hasTokens = hasAuthSessionTokensFromRequest(request);
+  const waitSec = Math.max(
+    result.retryAfterSeconds ?? 0,
+    getMeBlockedRemainingSecondsFromRequest(request),
+    30
+  );
   const target = result.user
     ? "/dashboard"
-    : result.rateLimited
-      ? `/dashboard?rate_limit=${result.retryAfterSeconds ?? 60}`
+    : result.rateLimited || hasTokens
+      ? `/dashboard?rate_limit=${waitSec}`
       : "/login?error=profile_unavailable";
 
   const response = NextResponse.redirect(new URL(target, appUrl));
@@ -34,23 +43,23 @@ export async function GET(request: NextRequest) {
   return response;
 }
 
-export async function POST() {
-  const result = await recoverProfile();
+export async function POST(request: NextRequest) {
+  const result = await recoverProfile(request);
   return NextResponse.json(result);
 }
 
-async function recoverProfile() {
+async function recoverProfile(request?: NextRequest) {
   const existing = await bootstrapSpotifyUser();
   if (existing) {
     return { ok: true, user: existing, rateLimited: false, retryAfterSeconds: 0 };
   }
 
-  if (isMeBlocked()) {
+  if (isMeBlockedFromRequest(request)) {
     return {
       ok: false,
       user: null,
       rateLimited: true,
-      retryAfterSeconds: getMeBlockedRemainingSeconds(),
+      retryAfterSeconds: getMeBlockedRemainingSecondsFromRequest(request),
       warning: "Still rate limited. Wait before trying again.",
     };
   }
@@ -77,9 +86,11 @@ async function recoverProfile() {
       ok: false,
       user: null,
       rateLimited,
-      retryAfterSeconds: rateLimited ? getMeBlockedRemainingSeconds() : 0,
+      retryAfterSeconds: rateLimited
+        ? getMeBlockedRemainingSecondsFromRequest(request)
+        : 0,
       warning: rateLimited
-        ? `Spotify rate limit. Wait ${getMeBlockedRemainingSeconds()}s and try this URL once more.`
+        ? `Spotify rate limit. Wait ${getMeBlockedRemainingSecondsFromRequest(request)}s and try this URL once more.`
         : message || "Could not load profile.",
     };
   }

@@ -6,6 +6,7 @@ import {
 import {
   fetchSpotifyMe,
   getMeBlockedRemainingSeconds,
+  getMeBlockedRemainingSecondsEffective,
   isMeBlocked,
   markMeRateLimited,
 } from "@/lib/spotify-me";
@@ -258,8 +259,8 @@ export function clearSpotifyUserSessionCache(): void {
   inflightMeLookup = null;
 }
 
-export function getSpotifyMeRateLimitSeconds(): number {
-  return getMeBlockedRemainingSeconds();
+export async function getSpotifyMeRateLimitSeconds(): Promise<number> {
+  return getMeBlockedRemainingSecondsEffective();
 }
 
 /** @deprecated Use resolveSpotifyUser */

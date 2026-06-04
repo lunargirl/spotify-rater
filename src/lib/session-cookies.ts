@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import type { NextResponse } from "next/server";
+import { SPOTIFY_ME_BLOCKED_COOKIE } from "@/lib/spotify-me";
 
 /** Secure flag breaks session cookies on http://127.0.0.1 — only use on HTTPS. */
 export function shouldUseSecureSessionCookies(): boolean {
@@ -52,7 +53,18 @@ const AUTH_COOKIE_NAMES = [
   "spotify_oauth_state",
   "spotify_user_id",
   "spotify_display_name",
+  SPOTIFY_ME_BLOCKED_COOKIE,
 ] as const;
+
+/** OAuth succeeded — profile may still be pending (rate limit / cold start). */
+export function hasAuthSessionTokensFromRequest(request: {
+  cookies: { get: (name: string) => { value?: string } | undefined };
+}): boolean {
+  return Boolean(
+    request.cookies.get("spotify_refresh_token")?.value ||
+      request.cookies.get("spotify_access_token")?.value
+  );
+}
 
 /** Clear Spotify session cookies on a redirect/JSON response (Route Handlers). */
 export function clearAuthCookiesOnResponse(response: NextResponse): void {

@@ -1,14 +1,68 @@
+import type { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { buildSessionCookieOptions, setSessionCookie } from "@/lib/session-cookies";
 import type { SpotifyUser } from "@/types";
 
 const SPOTIFY_API_BASE = "https://api.spotify.com/v1";
 
+/** Survives serverless cold starts (in-memory block is per-instance only). */
+export const SPOTIFY_ME_BLOCKED_COOKIE = "spotify_me_blocked_until";
+
 let meBlockedUntil = 0;
+
+function blockedMsFromCookieValue(value: string | undefined): number {
+  if (!value) return 0;
+  const until = Number(value);
+  if (!Number.isFinite(until)) return 0;
+  return Math.max(0, until - Date.now());
+}
 
 export function markMeRateLimited(retryAfterMs: number): void {
   const until = Date.now() + retryAfterMs;
   if (until > meBlockedUntil) {
     meBlockedUntil = until;
   }
+  void persistMeRateLimitCookie(until);
+}
+
+async function persistMeRateLimitCookie(untilMs: number): Promise<void> {
+  const maxAge = Math.max(1, Math.ceil((untilMs - Date.now()) / 1000));
+  await setSessionCookie(SPOTIFY_ME_BLOCKED_COOKIE, String(untilMs), maxAge);
+}
+
+/** Set /me cooldown on a redirect response (OAuth callback, complete). */
+export function persistMeRateLimitOnResponse(
+  response: NextResponse,
+  retryAfterSeconds: number
+): void {
+  const sec = Math.max(1, retryAfterSeconds);
+  markMeRateLimited(sec * 1000);
+  const untilMs = Date.now() + sec * 1000;
+  response.cookies.set(
+    SPOTIFY_ME_BLOCKED_COOKIE,
+    String(untilMs),
+    buildSessionCookieOptions(sec)
+  );
+}
+
+export function getMeBlockedRemainingMsFromRequest(request?: NextRequest): number {
+  const cookieMs = blockedMsFromCookieValue(
+    request?.cookies.get(SPOTIFY_ME_BLOCKED_COOKIE)?.value
+  );
+  return Math.max(getMeBlockedRemainingMs(), cookieMs);
+}
+
+export async function getMeBlockedRemainingMsEffective(): Promise<number> {
+  let cookieMs = 0;
+  try {
+    const cookieStore = await cookies();
+    cookieMs = blockedMsFromCookieValue(
+      cookieStore.get(SPOTIFY_ME_BLOCKED_COOKIE)?.value
+    );
+  } catch {
+    /* outside request context */
+  }
+  return Math.max(getMeBlockedRemainingMs(), cookieMs);
 }
 
 export function getMeBlockedRemainingMs(): number {
@@ -19,8 +73,24 @@ export function isMeBlocked(): boolean {
   return getMeBlockedRemainingMs() > 0;
 }
 
+export function isMeBlockedFromRequest(request?: NextRequest): boolean {
+  return getMeBlockedRemainingMsFromRequest(request) > 0;
+}
+
+export async function isMeBlockedEffective(): Promise<boolean> {
+  return (await getMeBlockedRemainingMsEffective()) > 0;
+}
+
 export function getMeBlockedRemainingSeconds(): number {
   return Math.ceil(getMeBlockedRemainingMs() / 1000);
+}
+
+export function getMeBlockedRemainingSecondsFromRequest(request?: NextRequest): number {
+  return Math.ceil(getMeBlockedRemainingMsFromRequest(request) / 1000);
+}
+
+export async function getMeBlockedRemainingSecondsEffective(): Promise<number> {
+  return Math.ceil((await getMeBlockedRemainingMsEffective()) / 1000);
 }
 
 function retryAfterMs(response: Response, attempt: number): number {

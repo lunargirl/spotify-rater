@@ -23,17 +23,17 @@ export async function GET() {
     return NextResponse.json({ authenticated: true, user });
   }
 
-  const retryAfterSeconds = getSpotifyMeRateLimitSeconds();
+  const retryAfterSeconds = await getSpotifyMeRateLimitSeconds();
+  const rateLimited = retryAfterSeconds > 0;
   return NextResponse.json(
     {
       authenticated: true,
       user: null,
-      rateLimited: retryAfterSeconds > 0,
+      rateLimited,
       retryAfterSeconds,
-      warning:
-        retryAfterSeconds > 0
-          ? `Spotify rate limit — profile loads in about ${retryAfterSeconds} seconds. Avoid refreshing.`
-          : "Spotify profile is temporarily unavailable. Wait 2 minutes, then open /api/auth/recover-profile once.",
+      warning: rateLimited
+        ? `Spotify rate limit — profile loads in about ${retryAfterSeconds} seconds. Avoid refreshing. Use Recover profile on the dashboard when the timer ends.`
+        : "Spotify profile is temporarily unavailable. Wait 2 minutes, then open /api/auth/recover-profile once (no need to log in again if you still have a session).",
     },
     { status: 200 }
   );

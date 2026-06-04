@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRouteAccessToken, refreshAccessToken, SPOTIFY_SCOPES } from "@/lib/spotify";
 import {
-  getMeBlockedRemainingSeconds,
-  isMeBlocked,
+  getMeBlockedRemainingSecondsFromRequest,
+  isMeBlockedFromRequest,
 } from "@/lib/spotify-me";
 import { tryCreateSupabaseAdmin } from "@/lib/supabase";
 
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   let retryAfterSeconds: number | null = null;
 
   const accessToken = await getRouteAccessToken();
-  if (accessToken && !isMeBlocked()) {
+  if (accessToken && !isMeBlockedFromRequest(request)) {
     try {
       const meRes = await fetch("https://api.spotify.com/v1/me", {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -34,10 +34,10 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       meSnippet = error instanceof Error ? error.message : "fetch failed";
     }
-  } else if (isMeBlocked()) {
+  } else if (isMeBlockedFromRequest(request)) {
     meStatus = 429;
-    meSnippet = "Skipped probe — global /me cooldown active";
-    retryAfterSeconds = getMeBlockedRemainingSeconds();
+    meSnippet = "Skipped probe — /me cooldown active (cookie or in-process)";
+    retryAfterSeconds = getMeBlockedRemainingSecondsFromRequest(request);
   }
 
   let refreshOk: boolean | null = null;
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     meStatus,
     meSnippet,
     retryAfterSeconds,
-    meBlockedSeconds: getMeBlockedRemainingSeconds(),
+    meBlockedSeconds: getMeBlockedRemainingSecondsFromRequest(request),
     refreshOk,
     supabaseConfigured: Boolean(supabase),
     scopes: SPOTIFY_SCOPES,
@@ -68,8 +68,8 @@ export async function GET(request: NextRequest) {
         ? "SPOTIFY_CLIENT_SECRET on Vercel likely does not match this Spotify app. Sign out, fix env, redeploy, log in again."
         : meStatus === 403
           ? "Missing scopes — sign out and log in again (app will request fresh permissions)."
-          : meStatus === 429 || getMeBlockedRemainingSeconds() > 0
-            ? `Spotify rate limit on /me. Do not refresh rapidly. Wait ${retryAfterSeconds ?? getMeBlockedRemainingSeconds() ?? 60}s, then open /api/auth/recover-profile once.`
+          : meStatus === 429 || isMeBlockedFromRequest(request)
+            ? `Spotify rate limit on /me. Do not refresh rapidly. Wait ${retryAfterSeconds ?? getMeBlockedRemainingSecondsFromRequest(request) ?? 60}s, then open /api/auth/recover-profile once (stay signed in).`
             : !hasUserId && hasAccess
               ? "Tokens OK but no profile cookie — open /api/auth/recover-profile after rate limit clears."
               : null,

@@ -19,7 +19,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   server_error:
     "Spotify could not finish login (their server_error). In Development mode, add your Spotify account email under Users and Access in the Developer Dashboard, then try again in a private window.",
   profile_unavailable:
-    "Login tokens were saved but your Spotify profile could not be loaded. Check Vercel SPOTIFY_CLIENT_SECRET matches your Dashboard app, then sign in again in a private window.",
+    "Spotify login did not finish — no session was saved. Sign in again. If login keeps failing, check Vercel SPOTIFY_CLIENT_SECRET matches your Spotify Dashboard app.",
+  profile_rate_limited:
+    "Spotify is rate-limiting profile requests (HTTP 429). Your login tokens are already saved — wait about 60 seconds, open the dashboard, and use Recover profile. Do not sign in again in a loop.",
 };
 
 export function LoginView({
