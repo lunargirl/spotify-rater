@@ -8,6 +8,7 @@ import { ProfilePage } from "@/components/ProfilePage";
 
 export function ProfileView() {
   const [displayName, setDisplayName] = useState("");
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
   const [ratings, setRatings] = useState<SongRating[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +49,11 @@ export function ProfileView() {
               data.spotifyUser?.display_name ??
               data.spotifyUser?.id ??
               "Profile"
+          );
+          setProfilePictureUrl(
+            data.profile?.profile_picture_url ??
+              data.spotifyUser?.images?.[0]?.url ??
+              null
           );
           setRatings((data.ratings ?? []).map((r: SongRating) => normalizeSongRating(r)));
           setError(null);
@@ -104,7 +110,11 @@ export function ProfileView() {
           </div>
         )}
         {!loading && (
-          <ProfilePage displayName={displayName} initialRatings={ratings} />
+          <ProfilePage
+            displayName={displayName}
+            profilePictureUrl={profilePictureUrl}
+            initialRatings={ratings}
+          />
         )}
       </main>
     </div>

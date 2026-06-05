@@ -9,7 +9,10 @@ import {
   hasAuthSessionTokensFromRequest,
   persistUserIdOnResponse,
 } from "@/lib/session-cookies";
-import { bootstrapSpotifyUser, persistSpotifyUserCookies } from "@/lib/session-user";
+import {
+  persistSpotifyUserCookies,
+  resolveSpotifyUserFromStoredSession,
+} from "@/lib/session-user";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function recoverProfile(request?: NextRequest) {
-  const existing = await bootstrapSpotifyUser();
+  const existing = await resolveSpotifyUserFromStoredSession();
   if (existing) {
     return { ok: true, user: existing, rateLimited: false, retryAfterSeconds: 0 };
   }
@@ -76,7 +79,7 @@ async function recoverProfile(request?: NextRequest) {
   }
 
   try {
-    const user = await fetchSpotifyMe(accessToken, { max429Retries: 1 });
+    const user = await fetchSpotifyMe(accessToken, { max429Retries: 0 });
     await persistSpotifyUserCookies(user);
     return { ok: true, user, rateLimited: false, retryAfterSeconds: 0 };
   } catch (error) {

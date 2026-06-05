@@ -64,8 +64,21 @@ export function Dashboard() {
     let cancelled = false;
 
     async function tryLoadProfile() {
-      const bootstrapRes = await fetch("/api/auth/bootstrap", { method: "POST" });
-      const bootstrapData = await bootstrapRes.json().catch(() => null);
+      const statusRes = await fetch("/api/auth/rate-limit-status");
+      const status = await statusRes.json().catch(() => null);
+      if (cancelled) return null;
+
+      if (status?.rateLimited && status.secondsRemaining > 0) {
+        setWaitSeconds(status.secondsRemaining);
+        setProfileWarning(
+          `Spotify limits profile lookups separately from playback. Wait about ${Math.ceil(status.secondsRemaining / 60)} min — do not refresh.`
+        );
+        return {
+          rateLimited: true,
+          retryAfterSeconds: status.secondsRemaining,
+        };
+      }
+
       const res = await fetch("/api/auth/me");
       if (cancelled) return null;
 
@@ -83,18 +96,14 @@ export function Dashboard() {
         return data.user;
       }
 
-      const warning =
-        data?.warning ??
-        bootstrapData?.warning ??
-        "Spotify profile not loaded yet.";
+      const warning = data?.warning ?? "Spotify profile not loaded yet.";
       setProfileWarning(warning);
-      const retryAfterSeconds =
-        data?.retryAfterSeconds ?? bootstrapData?.retryAfterSeconds ?? 0;
+      const retryAfterSeconds = data?.retryAfterSeconds ?? 0;
       if (retryAfterSeconds > 0) {
         setWaitSeconds((prev) => Math.max(prev, retryAfterSeconds));
       }
       return {
-        rateLimited: Boolean(data?.rateLimited ?? bootstrapData?.rateLimited),
+        rateLimited: Boolean(data?.rateLimited),
         retryAfterSeconds,
       };
     }
@@ -120,11 +129,16 @@ export function Dashboard() {
       if (recoverData?.rateLimited && recoverData.retryAfterSeconds > 0) {
         setWaitSeconds(recoverData.retryAfterSeconds);
         setRecoveringProfile(false);
+        setProfileWarning(
+          `Still rate limited — wait about ${Math.ceil(recoverData.retryAfterSeconds / 60)} more minute(s). Playback is unaffected.`
+        );
         return;
       }
 
       setRecoveringProfile(false);
-      await tryLoadProfile();
+      setProfileWarning(
+        recoverData?.warning ?? "Could not load profile. Wait 5 minutes, then tap Retry now."
+      );
     }
 
     async function waitForRateLimitThenRecover(initialSeconds: number) {
@@ -160,36 +174,27 @@ export function Dashboard() {
       const params = new URLSearchParams(window.location.search);
       const rateLimitSec = Number(params.get("rate_limit")) || 0;
 
-      if (rateLimitSec > 0) {
-        await waitForRateLimitThenRecover(rateLimitSec);
+      const statusRes = await fetch("/api/auth/rate-limit-status");
+      const status = await statusRes.json().catch(() => null);
+      const initialWait = Math.max(
+        rateLimitSec,
+        status?.secondsRemaining ?? 0
+      );
+
+      if (initialWait > 0) {
+        await waitForRateLimitThenRecover(initialWait);
         if (cancelled) return;
-        const result = await tryLoadProfile();
-        if (
-          result &&
-          typeof result === "object" &&
-          "rateLimited" in result &&
-          result.rateLimited &&
-          (result.retryAfterSeconds ?? 0) > 0
-        ) {
-          await waitForRateLimitThenRecover(result.retryAfterSeconds ?? 60);
-        }
-        return;
       }
 
       const result = await tryLoadProfile();
       if (
-        cancelled ||
-        !result ||
-        typeof result !== "object" ||
-        !("rateLimited" in result) ||
-        !result.rateLimited
+        result &&
+        typeof result === "object" &&
+        "rateLimited" in result &&
+        result.rateLimited &&
+        (result.retryAfterSeconds ?? 0) > 0
       ) {
-        return;
-      }
-
-      await waitForRateLimitThenRecover(Math.max(result.retryAfterSeconds ?? 60, 30));
-      if (!cancelled) {
-        await tryLoadProfile();
+        await waitForRateLimitThenRecover(result.retryAfterSeconds ?? 300);
       }
     }
 
@@ -247,7 +252,8 @@ export function Dashboard() {
               <p className="mt-2 text-xs text-amber-200/80">Please stay on this page…</p>
             )}
             <p className="mt-2 text-xs text-amber-200/80">
-              Do not refresh or log in again — recovery runs automatically when the timer ends.
+              Live playback uses a different Spotify API than your profile — you are not locked out of
+              Spotify, only profile lookup is paused. Do not refresh; recovery runs when the timer ends.
             </p>
             <div className="mt-3 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
               {waitSeconds === 0 && !recoveringProfile ? (

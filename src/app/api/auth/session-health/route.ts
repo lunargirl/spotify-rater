@@ -3,6 +3,7 @@ import { getRouteAccessToken, refreshAccessToken, SPOTIFY_SCOPES } from "@/lib/s
 import {
   getMeBlockedRemainingSecondsFromRequest,
   isMeBlockedFromRequest,
+  markMeRateLimited,
 } from "@/lib/spotify-me";
 import { tryCreateSupabaseAdmin } from "@/lib/supabase";
 
@@ -29,7 +30,8 @@ export async function GET(request: NextRequest) {
       meSnippet = text.slice(0, 200);
       if (meRes.status === 429) {
         const header = Number(meRes.headers.get("Retry-After"));
-        retryAfterSeconds = !Number.isNaN(header) && header > 0 ? header : 60;
+        retryAfterSeconds = !Number.isNaN(header) && header > 0 ? header : 300;
+        markMeRateLimited(Math.max(retryAfterSeconds, 300) * 1000);
       }
     } catch (error) {
       meSnippet = error instanceof Error ? error.message : "fetch failed";

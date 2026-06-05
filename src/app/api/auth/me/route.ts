@@ -3,7 +3,7 @@ import { getRouteAccessToken } from "@/lib/spotify";
 import {
   bootstrapSpotifyUser,
   getSpotifyMeRateLimitSeconds,
-  resolveSpotifyUser,
+  resolveSpotifyUserFromStoredSession,
 } from "@/lib/session-user";
 
 export const dynamic = "force-dynamic";
@@ -15,25 +15,38 @@ export async function GET() {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 
-  let user = await resolveSpotifyUser({ allowSessionWrites: true });
-  if (!user) {
-    user = await bootstrapSpotifyUser();
+  const retryAfterSeconds = await getSpotifyMeRateLimitSeconds();
+  if (retryAfterSeconds > 0) {
+    const fromStored = await resolveSpotifyUserFromStoredSession();
+    if (fromStored) {
+      return NextResponse.json({ authenticated: true, user: fromStored });
+    }
+
+    return NextResponse.json({
+      authenticated: true,
+      user: null,
+      rateLimited: true,
+      retryAfterSeconds,
+      warning: `Spotify is limiting profile lookups (not playback). Wait about ${Math.ceil(retryAfterSeconds / 60)} minutes without refreshing — recovery runs automatically.`,
+    });
   }
+
+  const user = await bootstrapSpotifyUser();
   if (user) {
     return NextResponse.json({ authenticated: true, user });
   }
 
-  const retryAfterSeconds = await getSpotifyMeRateLimitSeconds();
-  const rateLimited = retryAfterSeconds > 0;
+  const retryAfter = await getSpotifyMeRateLimitSeconds();
+  const rateLimited = retryAfter > 0;
   return NextResponse.json(
     {
       authenticated: true,
       user: null,
       rateLimited,
-      retryAfterSeconds,
+      retryAfterSeconds: retryAfter,
       warning: rateLimited
-        ? `Spotify rate limit — profile loads in about ${retryAfterSeconds} seconds. Avoid refreshing. Use Recover profile on the dashboard when the timer ends.`
-        : "Spotify profile is temporarily unavailable. Wait 2 minutes, then open /api/auth/recover-profile once (no need to log in again if you still have a session).",
+        ? `Spotify rate limit — wait about ${Math.ceil(retryAfter / 60)} minute(s). Live playback still works; only your profile id is delayed.`
+        : "Spotify profile is temporarily unavailable. Open /api/auth/recover-profile once after waiting a few minutes.",
     },
     { status: 200 }
   );

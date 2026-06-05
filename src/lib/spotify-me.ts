@@ -94,15 +94,18 @@ export async function getMeBlockedRemainingSecondsEffective(): Promise<number> {
   return Math.ceil((await getMeBlockedRemainingMsEffective()) / 1000);
 }
 
+/** Minimum wait after /me 429 — dev apps get hammered easily; short retries keep you locked. */
+const MIN_ME_BACKOFF_MS = 5 * 60 * 1000;
+
 function retryAfterMs(response: Response, attempt: number): number {
   const header = response.headers.get("Retry-After");
   if (header) {
     const seconds = Number(header);
     if (!Number.isNaN(seconds) && seconds > 0) {
-      return Math.min(seconds * 1000, 120_000);
+      return Math.max(seconds * 1000, MIN_ME_BACKOFF_MS);
     }
   }
-  return Math.min(30_000, 8000 * (attempt + 1));
+  return Math.max(MIN_ME_BACKOFF_MS, Math.min(30_000, 8000 * (attempt + 1)));
 }
 
 /**

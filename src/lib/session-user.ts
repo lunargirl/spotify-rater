@@ -199,7 +199,7 @@ export async function resolveSpotifyUser(
 
   if (!inflightMeLookup) {
     inflightMeLookup = fetchMeAndPersist(accessToken, allowWrites, {
-      max429Retries: allowWrites ? 1 : 0,
+      max429Retries: 0,
       mayRefreshToken: allowWrites,
     }).finally(() => {
       inflightMeLookup = null;
@@ -218,17 +218,17 @@ export async function resolveSpotifyUser(
   return null;
 }
 
-/** Force /me + persist profile cookies (login recovery, ratings, profile). */
-export async function bootstrapSpotifyUser(): Promise<SpotifyUser | null> {
-  meCooldownUntil = 0;
-  memoryCachedUser = null;
-  inflightMeLookup = null;
-
+/** Cookies + Supabase refresh link only — never calls Spotify /me. */
+export async function resolveSpotifyUserFromStoredSession(): Promise<SpotifyUser | null> {
   const fromCookies = await readUserFromCookies();
   if (fromCookies) return fromCookies;
+  return resolveFromRefreshTokenLink(true);
+}
 
-  const fromLink = await resolveFromRefreshTokenLink(true);
-  if (fromLink) return fromLink;
+/** Force /me + persist profile cookies (login recovery, ratings, profile). */
+export async function bootstrapSpotifyUser(): Promise<SpotifyUser | null> {
+  const fromStored = await resolveSpotifyUserFromStoredSession();
+  if (fromStored) return fromStored;
 
   const accessToken = await getValidAccessToken({ refresh: true });
   if (!accessToken) return null;
@@ -238,7 +238,7 @@ export async function bootstrapSpotifyUser(): Promise<SpotifyUser | null> {
   }
 
   const fromMe = await fetchMeAndPersist(accessToken, true, {
-    max429Retries: 1,
+    max429Retries: 0,
     mayRefreshToken: true,
   });
   if (fromMe) return fromMe;

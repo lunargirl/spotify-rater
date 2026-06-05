@@ -17,9 +17,44 @@ import { useCommunityBenchmark } from "@/hooks/useCommunityBenchmark";
 
 interface AnalyticsDashboardProps {
   ratings: SongRating[];
+  displayName: string;
+  profilePictureUrl?: string | null;
 }
 
-export function AnalyticsDashboard({ ratings }: AnalyticsDashboardProps) {
+function ProfileAvatar({
+  displayName,
+  profilePictureUrl,
+}: {
+  displayName: string;
+  profilePictureUrl?: string | null;
+}) {
+  const initial = displayName.trim().charAt(0).toUpperCase() || "?";
+
+  if (profilePictureUrl) {
+    return (
+      <Image
+        src={profilePictureUrl}
+        alt=""
+        width={80}
+        height={80}
+        unoptimized
+        className="h-20 w-20 shrink-0 rounded-2xl object-cover ring-2 ring-zinc-700"
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-zinc-800 text-2xl font-bold text-zinc-400 ring-2 ring-zinc-700">
+      {initial}
+    </div>
+  );
+}
+
+export function AnalyticsDashboard({
+  ratings,
+  displayName,
+  profilePictureUrl,
+}: AnalyticsDashboardProps) {
   const [filters, setFilters] = useState<AnalyticsFilters>(DEFAULT_ANALYTICS_FILTERS);
   const community = useCommunityBenchmark(1);
 
@@ -33,68 +68,75 @@ export function AnalyticsDashboard({ ratings }: AnalyticsDashboardProps) {
     [normalizedRatings, filters]
   );
 
+  const overviewCard = (
+    <div className="glass-card p-6">
+      <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
+        Analytics Overview
+      </p>
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+        <ProfileAvatar displayName={displayName} profilePictureUrl={profilePictureUrl} />
+        <h2 className="text-2xl font-bold text-white">{displayName}</h2>
+      </div>
+
+      <div className="mt-6 grid gap-6 sm:grid-cols-3">
+        <div>
+          <p className="text-3xl font-bold tabular-nums text-white">{ratings.length}</p>
+          <p className="text-xs text-zinc-500">Songs rated</p>
+        </div>
+        <div>
+          <p
+            className="text-3xl font-bold tabular-nums"
+            style={{
+              color:
+                analytics.grandAverage !== null
+                  ? ratingColor(analytics.grandAverage)
+                  : undefined,
+            }}
+          >
+            {analytics.grandAverage !== null ? formatRating(analytics.grandAverage) : "—"}
+            <span className="text-lg text-zinc-500">/10</span>
+          </p>
+          <p className="text-xs text-zinc-500">Your average</p>
+        </div>
+        <div>
+          <p className="text-3xl font-bold tabular-nums text-zinc-300">
+            {community.loading
+              ? "…"
+              : community.average !== null
+                ? formatRating(community.average)
+                : "—"}
+            <span className="text-lg text-zinc-500">/10</span>
+          </p>
+          <p className="text-xs text-zinc-500">Community average</p>
+        </div>
+      </div>
+
+      {ratings.length > 0 && (
+        <p className="mt-4 text-sm text-zinc-500">
+          Showing {filtered.length} of {ratings.length} rated song
+          {ratings.length === 1 ? "" : "s"}
+          {filtered.length !== ratings.length ? " (filtered)" : ""}
+        </p>
+      )}
+    </div>
+  );
+
   if (ratings.length === 0) {
     return (
-      <section className="glass-card p-8 text-center">
-        <h3 className="text-sm font-semibold uppercase tracking-widest text-zinc-400">
-          Data Analytics Suite
-        </h3>
-        <p className="mt-4 text-zinc-500">
-          Rate some songs on the Live Rater page to unlock interactive analytics.
-        </p>
-      </section>
+      <div className="space-y-6">
+        {overviewCard}
+        <section className="glass-card p-8 text-center">
+          <p className="text-zinc-500">
+            Rate some songs on the Live Rater page to unlock interactive analytics.
+          </p>
+        </section>
+      </div>
     );
   }
 
   return (
     <section className="space-y-6">
-      <div className="glass-card p-6">
-        <h3 className="text-sm font-semibold uppercase tracking-widest text-zinc-400">
-          Grand Average Rating
-        </h3>
-        <div className="mt-3 flex flex-wrap items-baseline gap-x-8 gap-y-2">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
-              Your average
-            </p>
-            <p className="text-4xl font-bold tabular-nums text-white">
-              {analytics.grandAverage !== null ? (
-                <>
-                  <span style={{ color: ratingColor(analytics.grandAverage) }}>
-                    {formatRating(analytics.grandAverage)}
-                  </span>
-                  <span className="text-2xl text-zinc-500">/10</span>
-                </>
-              ) : (
-                "—"
-              )}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
-              Global community average
-            </p>
-            <p className="text-4xl font-bold tabular-nums text-zinc-400">
-              {community.loading
-                ? "…"
-                : community.average !== null
-                  ? formatRating(community.average)
-                  : "—"}
-              <span className="text-2xl text-zinc-600">/10</span>
-            </p>
-            {!community.loading && community.totalRatings > 0 && (
-              <p className="mt-1 text-xs text-zinc-600">
-                Across {community.totalRatings} community rating
-                {community.totalRatings === 1 ? "" : "s"}
-              </p>
-            )}
-          </div>
-        </div>
-        <p className="mt-2 text-sm text-zinc-500">
-          Showing {filtered.length} of {ratings.length} rated song
-          {ratings.length === 1 ? "" : "s"}
-        </p>
-      </div>
+      {overviewCard}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(240px,280px)_1fr]">
         <AnalyticsFilterPanel
