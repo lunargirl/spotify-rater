@@ -14,8 +14,19 @@ export async function POST(request: NextRequest) {
 }
 
 async function runCronSync(request: NextRequest) {
-  if (!verifyCronSecret(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = verifyCronSecret(request);
+  if (!auth.ok) {
+    const hints: Record<string, string> = {
+      not_configured:
+        "CRON_SECRET is not set on Vercel. Add it under Environment Variables, then redeploy.",
+      missing:
+        "Send Authorization: Bearer <CRON_SECRET>, X-Cron-Secret: <CRON_SECRET>, or ?secret=<CRON_SECRET>.",
+      invalid: "Credential does not match CRON_SECRET on Vercel (check typos and redeploy).",
+    };
+    return NextResponse.json(
+      { error: "Unauthorized", reason: auth.reason, hint: hints[auth.reason] },
+      { status: 401 }
+    );
   }
 
   try {
