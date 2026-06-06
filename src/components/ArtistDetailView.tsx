@@ -58,10 +58,10 @@ export function ArtistDetailView({ artistId }: { artistId: string }) {
   const albums = data?.albums ?? [];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <AppHeader userLabel={data?.artist.name} />
 
-      <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-6xl min-w-0 space-y-6 px-4 py-8 sm:px-6">
         {loading && <div className="glass-card h-48 animate-pulse" />}
         {error && <div className="glass-card p-6 text-red-400">{error}</div>}
 

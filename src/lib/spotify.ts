@@ -7,11 +7,12 @@ const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
 const SPOTIFY_API_BASE = "https://api.spotify.com/v1";
 
 /** Bump when scopes change so users are prompted to re-authorize. */
-export const SPOTIFY_SCOPES_VERSION = "3";
+export const SPOTIFY_SCOPES_VERSION = "4";
 
 export const SPOTIFY_SCOPE_LIST = [
   "user-read-currently-playing",
   "user-read-playback-state",
+  "user-read-recently-played",
   "user-read-private",
   "user-read-email",
 ] as const;

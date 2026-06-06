@@ -39,10 +39,11 @@ export function RatingSlider({ value, onChange, disabled }: RatingSliderProps) {
   const handleDraftChange = (raw: string) => {
     if (raw !== "" && !/^\d*\.?\d{0,2}$/.test(raw)) return;
     setDraft(raw);
-    if (raw === "" || raw === ".") return;
-    const parsed = parseFloat(raw);
-    if (!Number.isNaN(parsed)) {
-      onChange(clampRating(parsed));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.currentTarget.blur();
     }
   };
 
@@ -59,9 +60,10 @@ export function RatingSlider({ value, onChange, disabled }: RatingSliderProps) {
           value={draft ?? formatRating(value)}
           onChange={(e) => handleDraftChange(e.target.value)}
           onBlur={(e) => commitDraft(e.target.value)}
+          onKeyDown={handleKeyDown}
           disabled={disabled}
           aria-label="Rating value"
-          className="mt-1 w-[5.5rem] border-b-2 border-transparent bg-transparent text-5xl font-bold tabular-nums outline-none transition-colors duration-200 focus:border-zinc-600 disabled:opacity-50 sm:w-[6rem]"
+          className="mt-1 min-w-[7.5rem] max-w-full border-b-2 border-transparent bg-transparent text-5xl font-bold tabular-nums outline-none transition-colors duration-200 focus:border-zinc-600 disabled:opacity-50 sm:min-w-[8rem]"
           style={{ color }}
         />
         <p className="mt-1 text-xs text-zinc-600">Type a value or use the slider</p>

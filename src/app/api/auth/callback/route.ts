@@ -16,6 +16,7 @@ import {
   getMeBlockedRemainingSecondsFromRequest,
   persistMeRateLimitOnResponse,
 } from "@/lib/spotify-me";
+import { persistListeningRefreshTokenIfEnabled } from "@/lib/listening-sync";
 import { lookupUserByRefreshToken } from "@/lib/spotify-session-link";
 
 export const dynamic = "force-dynamic";
@@ -87,6 +88,13 @@ export async function GET(request: NextRequest) {
         await persistSpotifyUserCookies(profile);
       } catch (persistError) {
         console.warn("[Spotify callback] persistSpotifyUserCookies:", persistError);
+      }
+      if (refreshToken) {
+        try {
+          await persistListeningRefreshTokenIfEnabled(profile.id, refreshToken);
+        } catch (listeningError) {
+          console.warn("[Spotify callback] listening token persist:", listeningError);
+        }
       }
     }
 

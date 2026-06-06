@@ -235,11 +235,11 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <CanonicalHostRedirect />
       <AppHeader userLabel={user?.display_name ?? user?.id} />
 
-      <main className="mx-auto max-w-6xl px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-8">
+      <main className="mx-auto max-w-6xl min-w-0 px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-8">
         {profileWarning && !user && (
           <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-200">
             <p>{profileWarning}</p>

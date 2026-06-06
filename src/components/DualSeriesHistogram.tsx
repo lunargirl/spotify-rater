@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { buildHistogramBins, type BinWidth } from "@/lib/analytics";
-import { scaleBinsToMax } from "@/lib/community-analytics";
 import {
   alignBenchmarkBins,
   averageToChartPercent,
@@ -132,10 +131,13 @@ export function DualSeriesHistogram({
     if (benchmarkMode === "average-line" || !rawBenchmarkBins.length || !primaryBins.length) {
       return [];
     }
-    const userMax = safeBinMaxCount(primaryBins);
-    const scaled = scaleBinsToMax(rawBenchmarkBins, userMax);
-    return alignBenchmarkBins(primaryBins, scaled);
+    return alignBenchmarkBins(primaryBins, rawBenchmarkBins);
   }, [benchmarkMode, rawBenchmarkBins, primaryBins]);
+
+  const benchmarkMaxCount = useMemo(
+    () => safeBinMaxCount(benchmarkBins),
+    [benchmarkBins]
+  );
 
   const primaryAverage =
     primaryAverageProp ?? computeScopeAverage(safePrimaryRatings);
@@ -236,7 +238,7 @@ export function DualSeriesHistogram({
         </p>
       ) : (
         <>
-          {!compact && benchmarkBins.length > 0 && (
+          {benchmarkBins.length > 0 && (
             <div className="mb-3 flex min-h-[1.25rem] flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-400">
               {hoveredBin ? (
                 <span>
@@ -289,7 +291,7 @@ export function DualSeriesHistogram({
                 bin.count === 0 ? (compact ? 2 : 4) : (bin.count / maxCount) * chartHeight;
               const benchmarkHeight =
                 benchmarkBar && benchmarkBar.count > 0
-                  ? (benchmarkBar.count / maxCount) * chartHeight
+                  ? (benchmarkBar.count / benchmarkMaxCount) * chartHeight
                   : 0;
               const isHovered = hoveredBin?.label === bin.label;
 
@@ -297,7 +299,7 @@ export function DualSeriesHistogram({
                 <div
                   key={`${bin.min}-${bin.max}`}
                   className={`relative flex flex-col items-center justify-end ${
-                    compact ? "min-w-0 flex-1" : "min-w-[18px] flex-1"
+                    compact && chartHeight <= 100 ? "min-w-0 flex-1" : "min-w-[14px] flex-1 sm:min-w-[18px]"
                   }`}
                   onMouseEnter={() => setHoveredBin(bin)}
                   onMouseLeave={() => setHoveredBin(null)}

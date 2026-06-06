@@ -77,7 +77,7 @@ export function SettingsPage({ initialProfile }: SettingsPageProps) {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <AppHeader userLabel="Settings" />
 
       <main className="mx-auto max-w-lg space-y-6 px-4 py-8 sm:px-6">

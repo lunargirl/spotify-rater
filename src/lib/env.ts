@@ -11,7 +11,7 @@ function sanitizeEnvValue(value: string): string {
   return trimmed;
 }
 
-function readEnv(name: string): string | undefined {
+export function readEnv(name: string): string | undefined {
   const raw = process.env[name];
   if (!raw) return undefined;
   const value = sanitizeEnvValue(raw);

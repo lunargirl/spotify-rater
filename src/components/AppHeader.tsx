@@ -41,8 +41,8 @@ export function AppHeader({ userLabel }: AppHeaderProps) {
 
           {showSearch && <HeaderSearch />}
 
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <nav className="flex min-w-0 flex-1 overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/60 p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
+            <nav className="inline-flex max-w-full shrink-0 overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/60 p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {NAV_ITEMS.map((item) => {
                 const active =
                   pathname === item.href || pathname.startsWith(`${item.href}/`);

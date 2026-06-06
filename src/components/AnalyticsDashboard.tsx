@@ -8,7 +8,8 @@ import {
   normalizeSongRating,
   type AnalyticsFilters,
 } from "@/lib/analytics";
-import type { SongRating } from "@/types";
+import type { ListeningStats, SongRating } from "@/types";
+import { MostListenedSection } from "./MostListenedSection";
 import { formatRating, ratingColor } from "@/lib/utils";
 import { AnalyticsFilterPanel } from "./AnalyticsFilterPanel";
 import { RatingHistogram } from "./RatingHistogram";
@@ -19,6 +20,7 @@ interface AnalyticsDashboardProps {
   ratings: SongRating[];
   displayName: string;
   profilePictureUrl?: string | null;
+  listening?: ListeningStats | null;
 }
 
 function ProfileAvatar({
@@ -54,6 +56,7 @@ export function AnalyticsDashboard({
   ratings,
   displayName,
   profilePictureUrl,
+  listening = null,
 }: AnalyticsDashboardProps) {
   const [filters, setFilters] = useState<AnalyticsFilters>(DEFAULT_ANALYTICS_FILTERS);
   const community = useCommunityBenchmark(1);
@@ -123,6 +126,13 @@ export function AnalyticsDashboard({
     return (
       <div className="space-y-4 sm:space-y-6">
         {overviewCard}
+        {listening?.enabled && (
+          <MostListenedSection
+            tracks={listening.topTracks}
+            totalPlays={listening.totalPlays}
+            enabled={listening.enabled}
+          />
+        )}
         <section className="glass-card p-8 text-center">
           <p className="text-zinc-500">
             Rate some songs on the Live Rater page to unlock interactive analytics.
@@ -148,6 +158,14 @@ export function AnalyticsDashboard({
           <RatingHistogram ratings={filtered} />
         </div>
       </div>
+
+      {listening?.enabled && (
+        <MostListenedSection
+          tracks={listening.topTracks}
+          totalPlays={listening.totalPlays}
+          enabled={listening.enabled}
+        />
+      )}
 
       <div className="glass-card min-w-0 p-3 sm:p-6">
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-widest text-zinc-400 sm:mb-4">

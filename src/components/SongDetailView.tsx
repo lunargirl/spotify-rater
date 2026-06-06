@@ -96,7 +96,7 @@ export function SongDetailView({ trackId }: { trackId: string }) {
   const savedComments = savedRating?.comments?.trim() ?? "";
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <AppHeader userLabel={track?.name ?? "Song"} />
 
       <main className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">

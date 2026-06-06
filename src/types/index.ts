@@ -59,6 +59,37 @@ export interface UserProfile {
   profile_picture_url: string | null;
   created_at: string;
   updated_at: string;
+  listening_sync_enabled?: boolean;
+  listening_sync_started_at?: string | null;
+  listening_last_synced_at?: string | null;
+}
+
+export interface TrackPlay {
+  id: string;
+  user_id: string;
+  spotify_track_id: string;
+  played_at: string;
+  track_name: string | null;
+  artist_name: string | null;
+  album_art_url: string | null;
+  created_at: string;
+}
+
+export interface MostListenedTrack {
+  spotify_track_id: string;
+  track_name: string;
+  artist_name: string;
+  album_art_url: string | null;
+  play_count: number;
+  last_played_at: string;
+}
+
+export interface ListeningStats {
+  enabled: boolean;
+  startedAt: string | null;
+  lastSyncedAt: string | null;
+  totalPlays: number;
+  topTracks: MostListenedTrack[];
 }
 
 export interface RatingDistributionBucket {
