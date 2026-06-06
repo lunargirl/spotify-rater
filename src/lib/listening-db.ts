@@ -114,6 +114,18 @@ export async function insertTrackPlays(rows: Omit<TrackPlay, "id" | "created_at"
   return data?.length ?? 0;
 }
 
+export async function getTrackPlayCount(userId: string, trackId: string): Promise<number> {
+  const supabase = createSupabaseAdmin();
+  const { count, error } = await supabase
+    .from("track_plays")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("spotify_track_id", trackId);
+
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function getListeningStats(userId: string): Promise<ListeningStats> {
   const supabase = tryCreateSupabaseAdmin();
   if (!supabase) {

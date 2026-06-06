@@ -4,8 +4,9 @@ import { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import { useTheme } from "@/contexts/ThemeContext";
 import { APP_THEMES } from "@/lib/themes";
-import type { UserProfile } from "@/types";
+import type { ListeningStats, UserProfile } from "@/types";
 import { AppHeader } from "./AppHeader";
+import { ListeningTrackingCard } from "./ListeningTrackingCard";
 
 interface SettingsPageProps {
   initialProfile: UserProfile;
@@ -24,9 +25,30 @@ export function SettingsPage({ initialProfile }: SettingsPageProps) {
   
   // Client mounting checkpoint to eliminate hydration mismatch logs
   const [mounted, setMounted] = useState(false);
+  const [listening, setListening] = useState<ListeningStats | null>(null);
+  const [listeningLoading, setListeningLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadListening() {
+      try {
+        const res = await fetch("/api/listening/status");
+        if (!res.ok || cancelled) return;
+        setListening((await res.json()) as ListeningStats);
+      } finally {
+        if (!cancelled) setListeningLoading(false);
+      }
+    }
+
+    loadListening();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function handleSaveName() {
@@ -80,7 +102,7 @@ export function SettingsPage({ initialProfile }: SettingsPageProps) {
     <div className="min-h-screen overflow-x-hidden">
       <AppHeader userLabel="Settings" />
 
-      <main className="mx-auto max-w-lg space-y-6 px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-lg min-w-0 space-y-6 px-4 py-8 sm:px-6">
         <section className="glass-card p-6">
           <h2 className="text-lg font-bold text-white">Profile</h2>
           <p className="mt-1 text-sm text-zinc-500">Avatar and display name</p>
@@ -135,6 +157,12 @@ export function SettingsPage({ initialProfile }: SettingsPageProps) {
             </div>
           </div>
         </section>
+
+        <ListeningTrackingCard
+          stats={listening}
+          loading={listeningLoading}
+          onStatsChange={setListening}
+        />
 
         <section className="glass-card p-6">
           <h2 className="text-lg font-bold text-white">Theme</h2>

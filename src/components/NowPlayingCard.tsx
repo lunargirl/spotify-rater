@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import type { NowPlaying } from "@/types";
-import { formatDuration } from "@/lib/utils";
-import { ArtistLink, AlbumLink, SongLink } from "./EntityLink";
+import { formatArtistsDisplay, formatDuration } from "@/lib/utils";
+import { AlbumLink, SongLink } from "./EntityLink";
 
 interface NowPlayingCardProps {
   nowPlaying: NowPlaying | null;
@@ -50,8 +50,8 @@ export function NowPlayingCard({ nowPlaying, loading }: NowPlayingCardProps) {
   const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
 
   return (
-    <div className="glass-card overflow-hidden p-6">
-      <div className="mb-4 flex items-center gap-2">
+    <div className="glass-card min-w-0 overflow-hidden p-4 sm:p-6">
+      <div className="mb-4 flex min-w-0 items-center gap-2">
         <span
           className={`inline-flex h-2 w-2 rounded-full ${
             nowPlaying?.isPlaying ? "animate-pulse bg-accent" : "bg-zinc-500"
@@ -61,11 +61,13 @@ export function NowPlayingCard({ nowPlaying, loading }: NowPlayingCardProps) {
           {nowPlaying?.isPlaying ? "Now Playing" : "Paused"}
         </span>
         {nowPlaying?.device && (
-          <span className="ml-auto text-xs text-zinc-600">via {nowPlaying.device}</span>
+          <span className="ml-auto hidden truncate text-xs text-zinc-600 sm:inline">
+            via {nowPlaying.device}
+          </span>
         )}
       </div>
 
-      <div className="flex gap-5">
+      <div className="flex min-w-0 gap-3 sm:gap-5">
         {albumArt ? (
           <Image
             src={albumArt}
@@ -73,10 +75,10 @@ export function NowPlayingCard({ nowPlaying, loading }: NowPlayingCardProps) {
             width={112}
             height={112}
             priority
-            className="h-28 w-28 shrink-0 rounded-xl object-cover shadow-lg shadow-black/40"
+            className="h-20 w-20 shrink-0 rounded-xl object-cover shadow-lg shadow-black/40 sm:h-28 sm:w-28"
           />
         ) : (
-          <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-xl bg-zinc-800">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-zinc-800 sm:h-28 sm:w-28">
             <svg className="h-10 w-10 text-zinc-600" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
             </svg>
@@ -84,22 +86,17 @@ export function NowPlayingCard({ nowPlaying, loading }: NowPlayingCardProps) {
         )}
 
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-xl font-bold">
+          <h2 className="min-w-0 truncate text-lg font-bold sm:text-xl">
             <SongLink
               trackId={track.id}
               trackName={track.name}
-              className="text-xl font-bold"
+              className="text-lg font-bold sm:text-xl"
             />
           </h2>
           <p className="truncate text-sm text-zinc-400">
-            {track.artists.map((a, i) => (
-              <span key={a.id ?? i}>
-                {i > 0 && ", "}
-                <ArtistLink artistId={a.id} artistName={a.name} className="text-sm" />
-              </span>
-            ))}
+            {formatArtistsDisplay(track.artists)}
           </p>
-          <p className="mt-1 truncate text-xs text-zinc-600">
+          <p className="mt-1 min-w-0 truncate text-xs text-zinc-600">
             <AlbumLink albumId={track.album.id} albumName={track.album.name} className="text-xs" />
           </p>
 

@@ -12,6 +12,7 @@ import { DeleteRatingButton } from "./DeleteRatingButton";
 interface SongData {
   track: SpotifyTrack;
   rating: SongRating | null;
+  playCount: number;
 }
 
 export function SongDetailView({ trackId }: { trackId: string }) {
@@ -33,7 +34,11 @@ export function SongDetailView({ trackId }: { trackId: string }) {
       const res = await fetch(`/api/spotify/tracks/${trackId}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to load song");
-      setData(json);
+      setData({
+        track: json.track,
+        rating: json.rating ?? null,
+        playCount: typeof json.playCount === "number" ? json.playCount : 0,
+      });
       if (json.rating) {
         setRating(Number(json.rating.rating));
         setComments(json.rating.comments ?? "");
@@ -92,6 +97,7 @@ export function SongDetailView({ trackId }: { trackId: string }) {
 
   const track = data?.track;
   const savedRating = data?.rating;
+  const playCount = data?.playCount ?? 0;
   const art = track?.album.images[0]?.url ?? savedRating?.album_art_url;
   const savedComments = savedRating?.comments?.trim() ?? "";
 
@@ -99,13 +105,13 @@ export function SongDetailView({ trackId }: { trackId: string }) {
     <div className="min-h-screen overflow-x-hidden">
       <AppHeader userLabel={track?.name ?? "Song"} />
 
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-3xl min-w-0 space-y-6 px-4 py-8 sm:px-6">
         {loading && <div className="glass-card h-56 animate-pulse" />}
         {error && <div className="glass-card p-6 text-red-400">{error}</div>}
 
         {track && (
           <>
-            <section className="glass-card overflow-hidden p-6 sm:p-8">
+            <section className="glass-card min-w-0 overflow-hidden p-6 sm:p-8">
               <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
                 {art ? (
                   <Image
@@ -123,7 +129,9 @@ export function SongDetailView({ trackId }: { trackId: string }) {
                   <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
                     Track
                   </p>
-                  <h1 className="mt-1 text-3xl font-bold text-white">{track.name}</h1>
+                  <h1 className="mt-1 truncate text-2xl font-bold text-white sm:text-3xl">
+                    {track.name}
+                  </h1>
                   <p className="mt-2 text-sm text-zinc-400">
                     {track.artists.map((a, i) => (
                       <span key={a.id ?? i}>
@@ -141,14 +149,27 @@ export function SongDetailView({ trackId }: { trackId: string }) {
                     {formatDuration(track.duration_ms)}
                   </p>
 
-                  {savedRating && !editMode && (
-                    <p
-                      className="mt-4 text-4xl font-bold tabular-nums"
-                      style={{ color: ratingColor(Number(savedRating.rating)) }}
-                    >
-                      {formatRating(Number(savedRating.rating))}
-                    </p>
-                  )}
+                  <div className="mt-4 flex flex-wrap items-end justify-center gap-4 sm:justify-start">
+                    {savedRating && !editMode && (
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">
+                          Rating
+                        </p>
+                        <p
+                          className="text-4xl font-bold tabular-nums"
+                          style={{ color: ratingColor(Number(savedRating.rating)) }}
+                        >
+                          {formatRating(Number(savedRating.rating))}
+                        </p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">
+                        Plays
+                      </p>
+                      <p className="text-4xl font-bold tabular-nums text-zinc-300">{playCount}</p>
+                    </div>
+                  </div>
 
                   {track.external_urls?.spotify && (
                     <a

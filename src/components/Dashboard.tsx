@@ -280,8 +280,8 @@ export function Dashboard() {
             </div>
           </div>
         )}
-        <div className="grid gap-6 lg:grid-cols-5">
-          <div className="space-y-6 lg:col-span-3">
+        <div className="grid min-w-0 gap-6 lg:grid-cols-5">
+          <div className="min-w-0 space-y-6 lg:col-span-3">
             <section>
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-400">
@@ -309,7 +309,7 @@ export function Dashboard() {
             />
           </div>
 
-          <div className="lg:col-span-2">
+          <div className="min-w-0 lg:col-span-2">
             <RatingsHistory
               ratings={ratings}
               loading={loadingRatings}

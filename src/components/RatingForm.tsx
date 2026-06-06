@@ -81,18 +81,18 @@ export function RatingForm({
   }
 
   return (
-    <div className="glass-card p-4 sm:p-6">
-      <div className="mb-6 flex items-center gap-3 sm:gap-4">
+    <div className="glass-card min-w-0 overflow-hidden p-4 sm:p-6">
+      <div className="mb-6 flex min-w-0 items-center gap-3 sm:gap-4">
         {albumArt && (
           <Image
             src={albumArt}
             alt=""
             width={56}
             height={56}
-            className="h-14 w-14 rounded-lg object-cover"
+            className="h-12 w-12 shrink-0 rounded-lg object-cover sm:h-14 sm:w-14"
           />
         )}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="truncate font-semibold text-white">{track.name}</p>
           <p className="truncate text-sm text-zinc-400">{formatArtistsDisplay(track.artists)}</p>
         </div>

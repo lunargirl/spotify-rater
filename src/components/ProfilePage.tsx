@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { normalizeSongRating } from "@/lib/analytics";
 import type { ListeningStats, SongRating } from "@/types";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
-import { ListeningTrackingCard } from "./ListeningTrackingCard";
 
 interface ProfilePageProps {
   displayName: string;
@@ -21,7 +20,6 @@ export function ProfilePage({
     initialRatings.map(normalizeSongRating)
   );
   const [listening, setListening] = useState<ListeningStats | null>(null);
-  const [listeningLoading, setListeningLoading] = useState(true);
 
   useEffect(() => {
     setRatings(initialRatings.map(normalizeSongRating));
@@ -46,8 +44,8 @@ export function ProfilePage({
         }
 
         if (!cancelled) setListening(stats);
-      } finally {
-        if (!cancelled) setListeningLoading(false);
+      } catch {
+        // Analytics still works without listening stats
       }
     }
 
@@ -58,18 +56,11 @@ export function ProfilePage({
   }, []);
 
   return (
-    <div className="min-w-0 space-y-4 sm:space-y-6">
-      <ListeningTrackingCard
-        stats={listening}
-        loading={listeningLoading}
-        onStatsChange={setListening}
-      />
-      <AnalyticsDashboard
-        ratings={ratings}
-        displayName={displayName}
-        profilePictureUrl={profilePictureUrl}
-        listening={listening}
-      />
-    </div>
+    <AnalyticsDashboard
+      ratings={ratings}
+      displayName={displayName}
+      profilePictureUrl={profilePictureUrl}
+      listening={listening}
+    />
   );
 }

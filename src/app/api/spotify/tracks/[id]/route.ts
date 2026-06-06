@@ -3,6 +3,7 @@ import { getRouteAccessToken } from "@/lib/spotify";
 import { resolveSpotifyUser } from "@/lib/session-user";
 import { fetchTrack } from "@/lib/spotify-catalog";
 import { normalizeSongRating } from "@/lib/analytics";
+import { getTrackPlayCount } from "@/lib/listening-db";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import type { SongRating } from "@/types";
 
@@ -29,6 +30,7 @@ export async function GET(
     }
 
     let rating: SongRating | null = null;
+    let playCount = 0;
     if (user) {
       const supabase = createSupabaseAdmin();
       const { data, error } = await supabase
@@ -40,9 +42,10 @@ export async function GET(
 
       if (error) throw error;
       rating = data ? normalizeSongRating(data as SongRating) : null;
+      playCount = await getTrackPlayCount(user.id, id);
     }
 
-    return NextResponse.json({ track, rating });
+    return NextResponse.json({ track, rating, playCount });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
