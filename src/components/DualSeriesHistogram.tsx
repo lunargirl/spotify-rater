@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { buildHistogramBins, type BinWidth } from "@/lib/analytics";
 import { scaleBinsToMax } from "@/lib/community-analytics";
 import {
@@ -85,6 +85,15 @@ export function DualSeriesHistogram({
 
   const [binWidth, setBinWidth] = useState<BinWidth>(initialBinWidth);
   const [hoveredBin, setHoveredBin] = useState<HistogramBin | null>(null);
+  const [isNarrow, setIsNarrow] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 639px)");
+    const update = () => setIsNarrow(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   const usesCommunityFetch = benchmarkFromCommunity;
   const community = useCommunityBenchmark(
@@ -146,7 +155,7 @@ export function DualSeriesHistogram({
     return averageToChartPercent(benchmarkAverageLine ?? benchmarkAverage, primaryBins);
   }, [benchmarkMode, benchmarkAverageLine, benchmarkAverage, primaryBins]);
 
-  const chartHeight = chartHeightProp ?? (compact ? 72 : 220);
+  const chartHeight = chartHeightProp ?? (compact ? 72 : isNarrow ? 150 : 220);
   const maxCount = safeBinMaxCount(primaryBins);
   const hasPrimaryData =
     primaryBins.length > 0 && primaryBins.some((b) => (b.count ?? 0) > 0);
@@ -154,7 +163,7 @@ export function DualSeriesHistogram({
   const communityLoading = usesCommunityFetch && community.loading;
 
   return (
-    <div className={`glass-card ${compact ? "p-4" : "p-6"}`}>
+    <div className={`glass-card min-w-0 ${compact ? "p-4" : "p-4 sm:p-6"}`}>
       <div
         className={`mb-3 flex flex-col gap-3 ${compact ? "" : "sm:flex-row sm:items-end sm:justify-between"}`}
       >
@@ -167,7 +176,11 @@ export function DualSeriesHistogram({
             {title}
           </h3>
           {headerExtra}
-          <div className={`mt-2 flex flex-wrap gap-x-4 gap-y-1 ${compact ? "text-xs" : "text-sm"}`}>
+          <div
+            className={`mt-2 flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-1 ${
+              compact ? "text-xs" : "text-sm"
+            }`}
+          >
             <span className="text-zinc-500">
               {primaryLabel}:{" "}
               <span className="font-semibold tabular-nums text-white">
@@ -193,17 +206,17 @@ export function DualSeriesHistogram({
         </div>
 
         {showBinControls && (
-          <div>
+          <div className="w-full sm:w-auto">
             <p className="mb-2 text-xs font-medium uppercase tracking-widest text-zinc-500">
               Bar size
             </p>
-            <div className="inline-flex rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
+            <div className="flex w-full rounded-xl border border-zinc-800 bg-zinc-900/60 p-1 sm:inline-flex sm:w-auto">
               {resolvedWidthOptions.map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => setBinWidth(option.value)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold tabular-nums transition ${
+                  className={`flex-1 rounded-lg px-2 py-2 text-xs font-semibold tabular-nums transition sm:flex-none sm:px-3 sm:py-1.5 ${
                     binWidth === option.value
                       ? "bg-accent text-on-accent"
                       : "text-zinc-400 hover:text-white"
@@ -224,15 +237,15 @@ export function DualSeriesHistogram({
       ) : (
         <>
           {!compact && benchmarkBins.length > 0 && (
-            <div className="mb-3 flex min-h-[1.25rem] items-center gap-4 text-xs text-zinc-400">
+            <div className="mb-3 flex min-h-[1.25rem] flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-400">
               {hoveredBin ? (
                 <span>
                   <span className="font-medium text-white">{hoveredBin.label}</span>
                   {" · "}
-                  Primary: {hoveredBin.count}
+                  {hoveredBin.count} rated
                 </span>
               ) : (
-                <span>Hover a bar for details</span>
+                <span className="hidden sm:inline">Hover a bar for details</span>
               )}
               <span className="flex items-center gap-1.5">
                 <span className="inline-block h-2 w-3 rounded-sm bg-zinc-600/35" />
@@ -249,8 +262,8 @@ export function DualSeriesHistogram({
           )}
 
           <div
-            className="relative flex items-end gap-1 overflow-x-auto pb-2"
-            style={{ minHeight: chartHeight + (compact ? 8 : 24) }}
+            className="relative flex w-full max-w-full touch-pan-x items-end gap-0.5 overflow-x-auto pb-2 sm:gap-1"
+            style={{ minHeight: chartHeight + (compact ? 8 : 24), WebkitOverflowScrolling: "touch" }}
           >
             {communityLoading && benchmarkFromCommunity && (
               <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-zinc-950/40 text-xs text-zinc-400">

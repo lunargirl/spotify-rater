@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { AnalyticsFilters } from "@/lib/analytics";
 import { extractFilterOptions, normalizeSongRating } from "@/lib/analytics";
 import type { SongRating } from "@/types";
@@ -16,11 +16,23 @@ function toggleValue<T>(values: T[], value: T): T[] {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 }
 
+function countActiveFilters(filters: AnalyticsFilters): number {
+  let count = 0;
+  if (filters.selectedArtists.length > 0) count += 1;
+  if (filters.ratingMin > 0 || filters.ratingMax < 10) count += 1;
+  if (filters.selectedDecades.length > 0) count += 1;
+  if (filters.selectedYears.length > 0) count += 1;
+  return count;
+}
+
 export function AnalyticsFilterPanel({
   ratings,
   filters,
   onChange,
 }: AnalyticsFilterPanelProps) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const activeCount = countActiveFilters(filters);
+
   const normalizedRatings = useMemo(
     () => ratings.map((rating) => normalizeSongRating(rating)),
     [ratings]
@@ -51,9 +63,27 @@ export function AnalyticsFilterPanel({
   }
 
   return (
-    <div className="glass-card flex h-full flex-col p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-widest text-zinc-400">Filters</h3>
+    <div className="glass-card flex flex-col p-3 sm:p-5 lg:h-full">
+      <button
+        type="button"
+        onClick={() => setMobileOpen((open) => !open)}
+        className="mb-0 flex w-full items-center justify-between gap-2 text-left lg:pointer-events-none lg:mb-4"
+        aria-expanded={mobileOpen}
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          <h3 className="text-sm font-semibold uppercase tracking-widest text-zinc-400">Filters</h3>
+          {activeCount > 0 && (
+            <span className="rounded-full bg-accent-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-accent">
+              {activeCount}
+            </span>
+          )}
+        </div>
+        <span className="text-xs text-zinc-500 lg:hidden">
+          {mobileOpen ? "Hide filters" : "Show filters"}
+        </span>
+      </button>
+
+      <div className="mt-3 hidden items-center justify-end lg:flex">
         <button
           type="button"
           onClick={clearFilters}
@@ -63,7 +93,20 @@ export function AnalyticsFilterPanel({
         </button>
       </div>
 
-      <div className="space-y-5 overflow-y-auto pr-1">
+      <div
+        className={`space-y-4 sm:space-y-5 lg:max-h-[32rem] lg:overflow-y-auto lg:pr-1 ${
+          mobileOpen ? "mt-4 block" : "hidden lg:mt-0 lg:block"
+        }`}
+      >
+        <div className="flex justify-end lg:hidden">
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="text-xs font-medium text-accent hover:underline"
+          >
+            Clear all
+          </button>
+        </div>
         <section>
           <label className="mb-2 block text-xs font-medium uppercase tracking-widest text-zinc-500">
             Artist

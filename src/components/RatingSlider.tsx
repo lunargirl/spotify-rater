@@ -52,21 +52,18 @@ export function RatingSlider({ value, onChange, disabled }: RatingSliderProps) {
         <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">
           Your Rating
         </p>
-        <div className="mt-1 flex items-baseline gap-2">
-          <input
-            type="text"
-            inputMode="decimal"
-            enterKeyHint="done"
-            value={draft ?? formatRating(value)}
-            onChange={(e) => handleDraftChange(e.target.value)}
-            onBlur={(e) => commitDraft(e.target.value)}
-            disabled={disabled}
-            aria-label="Rating value"
-            className="w-[5.5rem] border-b-2 border-transparent bg-transparent text-5xl font-bold tabular-nums outline-none transition-colors duration-200 focus:border-zinc-600 disabled:opacity-50 sm:w-[6rem]"
-            style={{ color }}
-          />
-          <span className="pb-1 text-2xl font-medium text-zinc-500">/10</span>
-        </div>
+        <input
+          type="text"
+          inputMode="decimal"
+          enterKeyHint="done"
+          value={draft ?? formatRating(value)}
+          onChange={(e) => handleDraftChange(e.target.value)}
+          onBlur={(e) => commitDraft(e.target.value)}
+          disabled={disabled}
+          aria-label="Rating value"
+          className="mt-1 w-[5.5rem] border-b-2 border-transparent bg-transparent text-5xl font-bold tabular-nums outline-none transition-colors duration-200 focus:border-zinc-600 disabled:opacity-50 sm:w-[6rem]"
+          style={{ color }}
+        />
         <p className="mt-1 text-xs text-zinc-600">Type a value or use the slider</p>
       </div>
 

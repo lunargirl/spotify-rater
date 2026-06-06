@@ -11,62 +11,36 @@ export function ProfileView() {
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
   const [ratings, setRatings] = useState<SongRating[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadProfile() {
       try {
-        const bootstrapRes = await fetch("/api/auth/bootstrap", { method: "POST" });
-        const bootstrapData = await bootstrapRes.json().catch(() => null);
-
-        if (bootstrapData?.rateLimited && !cancelled) {
-          const waitSec = Math.max(bootstrapData.retryAfterSeconds ?? 60, 30) + 3;
-          setError(
-            `Spotify is rate-limiting requests. Wait about ${waitSec} seconds — loading automatically…`
-          );
-          await new Promise((resolve) => setTimeout(resolve, waitSec * 1000));
-          if (cancelled) return;
-          await fetch("/api/auth/recover-profile", { method: "POST" });
-        }
-
         const res = await fetch("/api/profile");
         if (res.status === 401) {
           window.location.href = "/api/auth/logout?redirect=/login";
           return;
         }
-        if (!res.ok) {
-          throw new Error("Failed to load profile");
-        }
 
         const data = await res.json();
         if (cancelled) return;
 
-        if (data.spotifyUser?.id && !data.warning) {
-          setDisplayName(
-            data.profile?.display_name ??
-              data.spotifyUser?.display_name ??
-              data.spotifyUser?.id ??
-              "Profile"
-          );
-          setProfilePictureUrl(
-            data.profile?.profile_picture_url ??
-              data.spotifyUser?.images?.[0]?.url ??
-              null
-          );
-          setRatings((data.ratings ?? []).map((r: SongRating) => normalizeSongRating(r)));
-          setError(null);
-          return;
-        }
-
-        setError(
-          data.warning ??
-            "Profile not loaded. Wait 2 minutes without refreshing, then open Recover profile below."
+        setDisplayName(
+          data.profile?.display_name ??
+            data.spotifyUser?.display_name ??
+            data.spotifyUser?.id ??
+            "Profile"
         );
+        setProfilePictureUrl(
+          data.profile?.profile_picture_url ?? data.spotifyUser?.images?.[0]?.url ?? null
+        );
+        setRatings((data.ratings ?? []).map((r: SongRating) => normalizeSongRating(r)));
+        setWarning(data.warning ?? null);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load profile");
+          setWarning(err instanceof Error ? err.message : "Failed to load profile");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -80,31 +54,31 @@ export function ProfileView() {
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <AppHeader userLabel={displayName || "Profile"} />
 
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-6xl min-w-0 px-3 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-8">
         {loading && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div className="glass-card h-32 animate-pulse" />
             <div className="glass-card h-64 animate-pulse" />
           </div>
         )}
-        {error && !loading && (
+        {warning && !loading && (
           <div className="glass-card mb-6 space-y-3 p-4 text-center text-amber-300">
-            <p>{error}</p>
+            <p className="text-sm">{warning}</p>
             <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
               <a
                 href="/api/auth/recover-profile"
                 className="text-sm font-medium text-accent hover:underline"
               >
-                Recover profile (one tap after waiting)
+                Recover profile
               </a>
               <a
                 href="/api/auth/logout?redirect=/login"
                 className="text-sm font-medium text-zinc-400 hover:underline"
               >
-                Sign out and connect again
+                Sign out
               </a>
             </div>
           </div>

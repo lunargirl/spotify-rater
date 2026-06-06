@@ -3,40 +3,36 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { SongRating } from "@/types";
+import {
+  getCachedArtistPage,
+  setCachedArtistPage,
+  type CachedArtistPayload,
+} from "@/lib/artist-page-cache";
 import { AppHeader } from "./AppHeader";
 import { EntityScopedHistogram } from "./EntityScopedHistogram";
 
-interface ArtistAlbum {
-  id: string;
-  name: string;
-  images: { url: string }[];
-  release_date: string;
-}
-
-interface ArtistData {
-  artist: {
-    id: string;
-    name: string;
-    images: { url: string }[];
-    genres: string[];
-  };
-  ratings: SongRating[];
-  albums: ArtistAlbum[];
-}
+type ArtistData = CachedArtistPayload;
 
 export function ArtistDetailView({ artistId }: { artistId: string }) {
-  const [data, setData] = useState<ArtistData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<ArtistData | null>(() => getCachedArtistPage(artistId));
+  const [loading, setLoading] = useState(() => !getCachedArtistPage(artistId));
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    const cached = getCachedArtistPage(artistId);
+    if (cached) {
+      setData(cached);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`/api/spotify/artists/${artistId}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to load artist");
-      setData({
+      const payload: ArtistData = {
         artist: {
           ...json.artist,
           genres: json.artist?.genres ?? [],
@@ -44,7 +40,9 @@ export function ArtistDetailView({ artistId }: { artistId: string }) {
         },
         ratings: Array.isArray(json.ratings) ? json.ratings : [],
         albums: Array.isArray(json.albums) ? json.albums : [],
-      });
+      };
+      setCachedArtistPage(artistId, payload);
+      setData(payload);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
     } finally {

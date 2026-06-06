@@ -147,7 +147,6 @@ export function SongDetailView({ trackId }: { trackId: string }) {
                       style={{ color: ratingColor(Number(savedRating.rating)) }}
                     >
                       {formatRating(Number(savedRating.rating))}
-                      <span className="text-xl text-zinc-500">/10</span>
                     </p>
                   )}
 

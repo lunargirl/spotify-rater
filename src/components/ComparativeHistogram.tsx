@@ -25,6 +25,7 @@ export function ComparativeHistogram({
       title={title}
       compact={compact}
       showBinControls={showBinControls}
+      defaultBinWidth={1}
     />
   );
 }
