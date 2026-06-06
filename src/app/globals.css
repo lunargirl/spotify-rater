@@ -21,6 +21,17 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   min-height: 100vh;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+@media (max-width: 639px) {
+  input[type="text"],
+  input[type="search"],
+  input[type="email"],
+  textarea {
+    font-size: 16px;
+  }
 }
 
 body::before {
@@ -134,6 +145,31 @@ body::before {
 
 .rating-slider::-moz-range-thumb:active {
   cursor: grabbing;
+}
+
+@media (pointer: coarse) {
+  .rating-slider {
+    height: 20px;
+  }
+
+  .rating-slider::-webkit-slider-runnable-track {
+    height: 20px;
+  }
+
+  .rating-slider::-webkit-slider-thumb {
+    width: 28px;
+    height: 28px;
+    margin-top: -4px;
+  }
+
+  .rating-slider::-moz-range-track {
+    height: 20px;
+  }
+
+  .rating-slider::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+  }
 }
 
 ::-webkit-scrollbar {

@@ -19,6 +19,12 @@ export const metadata: Metadata = {
   description: "Rate your Spotify tracks with precision from 0.00 to 10.00",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

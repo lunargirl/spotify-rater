@@ -177,8 +177,113 @@ export function MassRatingTable({
         <p className="border-b border-zinc-800/60 px-5 py-2.5 text-sm text-accent">{message}</p>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+      <ul className="divide-y divide-zinc-800/50 md:hidden">
+        {rows.map((row, index) => {
+          const art = row.track.album.images[row.track.album.images.length - 1]?.url;
+          const score = scores[row.track.id] ?? 5;
+          const isDirty = dirtyOnlySave && dirty.has(row.track.id);
+
+          return (
+            <li
+              key={row.track.id}
+              className={`px-4 py-4 ${isDirty ? "bg-accent-muted/30" : ""}`}
+            >
+              <div className="flex items-start gap-3">
+                {art ? (
+                  <Image
+                    src={art}
+                    alt=""
+                    width={48}
+                    height={48}
+                    className="h-12 w-12 shrink-0 rounded-md object-cover ring-1 ring-zinc-800"
+                  />
+                ) : (
+                  <div className="h-12 w-12 shrink-0 rounded-md bg-zinc-800" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs tabular-nums text-zinc-600">
+                    {row.track.track_number ?? index + 1} · {formatDuration(row.track.duration_ms)}
+                  </p>
+                  <p className="truncate font-medium text-white">
+                    <SongLink trackId={row.track.id} trackName={row.track.name} />
+                  </p>
+                  <p className="truncate text-xs text-zinc-500">
+                    {row.track.artists.map((a, i) => (
+                      <span key={a.id ?? i}>
+                        {i > 0 && ", "}
+                        <ArtistLink artistId={a.id} artistName={a.name} className="text-xs" />
+                      </span>
+                    ))}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={
+                    row.track.id in scoreDrafts
+                      ? scoreDrafts[row.track.id]
+                      : Number.isFinite(score)
+                        ? formatRating(score)
+                        : ""
+                  }
+                  onChange={(e) => handleScoreDraftChange(row.track.id, e.target.value)}
+                  onBlur={() => {
+                    const draft = scoreDrafts[row.track.id];
+                    if (draft === "" || draft === ".") {
+                      clearScoreDraft(row.track.id);
+                      return;
+                    }
+                    clearScoreDraft(row.track.id);
+                  }}
+                  className="h-11 w-[4.5rem] shrink-0 rounded-lg border border-zinc-700/80 bg-zinc-900 px-2 text-center text-base font-medium tabular-nums text-white outline-none focus:border-accent focus:ring-1 focus:ring-accent/40"
+                  aria-label={`Rating for ${row.track.name}`}
+                />
+                <input
+                  type="range"
+                  min={0}
+                  max={1000}
+                  step={1}
+                  value={Math.round(score * 100)}
+                  onChange={(e) =>
+                    updateScore(row.track.id, parseInt(e.target.value, 10) / 100)
+                  }
+                  className="rating-slider min-w-0 flex-1 touch-manipulation"
+                  style={
+                    {
+                      "--slider-color": "var(--accent)",
+                      "--slider-percent": `${(score / 10) * 100}%`,
+                    } as React.CSSProperties
+                  }
+                />
+                {row.existing && (
+                  <DeleteRatingButton
+                    trackId={row.track.id}
+                    onDeleted={() => {
+                      setScores((prev) => ({ ...prev, [row.track.id]: 5 }));
+                      setBaselines((prev) => {
+                        const next = { ...prev };
+                        delete next[row.track.id];
+                        return next;
+                      });
+                      setDirty((prev) => {
+                        const next = new Set(prev);
+                        next.delete(row.track.id);
+                        return next;
+                      });
+                      onSaved?.();
+                    }}
+                  />
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-zinc-800/80 bg-zinc-900/30 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
               <th className="w-12 px-5 py-3 text-center">#</th>
@@ -268,7 +373,7 @@ export function MassRatingTable({
                           }
                           clearScoreDraft(row.track.id);
                         }}
-                        className="h-9 w-[4.25rem] shrink-0 rounded-lg border border-zinc-700/80 bg-zinc-900 px-2 text-center text-sm font-medium tabular-nums text-white outline-none transition focus:border-accent focus:ring-1 focus:ring-accent/40"
+                        className="h-9 w-[4.25rem] shrink-0 rounded-lg border border-zinc-700/80 bg-zinc-900 px-2 text-center text-base font-medium tabular-nums text-white outline-none transition focus:border-accent focus:ring-1 focus:ring-accent/40 sm:text-sm"
                         aria-label={`Rating for ${row.track.name}`}
                       />
                       <input
@@ -280,7 +385,7 @@ export function MassRatingTable({
                         onChange={(e) =>
                           updateScore(row.track.id, parseInt(e.target.value, 10) / 100)
                         }
-                        className="rating-slider min-w-0 flex-1"
+                        className="rating-slider min-w-0 flex-1 touch-manipulation"
                         style={
                           {
                             "--slider-color": "var(--accent)",
@@ -289,9 +394,6 @@ export function MassRatingTable({
                         }
                         aria-label={`Slider for ${row.track.name}`}
                       />
-                      <span className="w-11 shrink-0 text-right text-xs font-medium tabular-nums text-zinc-400">
-                        {formatRating(score)}
-                      </span>
                       {row.existing && (
                         <DeleteRatingButton
                           trackId={row.track.id}

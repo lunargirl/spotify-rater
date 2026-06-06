@@ -25,8 +25,8 @@ export function AppHeader({ userLabel }: AppHeaderProps) {
 
   return (
     <header className="relative z-[200] isolate border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-xl">
-      <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mx-auto max-w-6xl px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:py-4">
+        <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
           <a href="/dashboard" className="flex shrink-0 items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent">
               <svg className="h-5 w-5 text-on-accent" fill="currentColor" viewBox="0 0 24 24">
@@ -41,8 +41,8 @@ export function AppHeader({ userLabel }: AppHeaderProps) {
 
           {showSearch && <HeaderSearch />}
 
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <nav className="flex flex-wrap rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <nav className="flex min-w-0 flex-1 overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/60 p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {NAV_ITEMS.map((item) => {
                 const active =
                   pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -50,7 +50,7 @@ export function AppHeader({ userLabel }: AppHeaderProps) {
                   <a
                     key={item.href}
                     href={item.href}
-                    className={`rounded-lg px-3 py-2 text-sm font-medium transition sm:px-4 ${
+                    className={`shrink-0 rounded-lg px-3 py-2.5 text-sm font-medium transition sm:px-4 ${
                       active
                         ? "bg-accent text-on-accent"
                         : "text-zinc-400 hover:text-white"
@@ -64,7 +64,7 @@ export function AppHeader({ userLabel }: AppHeaderProps) {
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-400 transition hover:border-zinc-600 hover:text-white"
+              className="shrink-0 rounded-lg border border-zinc-700 px-3 py-2.5 text-sm text-zinc-400 transition hover:border-zinc-600 hover:text-white sm:px-4"
             >
               Log out
             </button>

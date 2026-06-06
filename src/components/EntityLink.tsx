@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const LINK_CLASS =
-  "text-zinc-100 transition hover:text-white hover:underline";
+  "inline-block max-w-full truncate text-zinc-100 transition hover:text-white hover:underline";
 
 interface ArtistLinkProps {
   artistId?: string | null;

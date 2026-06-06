@@ -81,8 +81,8 @@ export function RatingForm({
   }
 
   return (
-    <div className="glass-card p-6">
-      <div className="mb-6 flex items-center gap-4">
+    <div className="glass-card p-4 sm:p-6">
+      <div className="mb-6 flex items-center gap-3 sm:gap-4">
         {albumArt && (
           <Image
             src={albumArt}
@@ -129,7 +129,7 @@ export function RatingForm({
         type="button"
         onClick={handleSave}
         disabled={saving}
-        className="mt-6 w-full rounded-xl bg-accent py-3 text-sm font-semibold text-on-accent transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-6 min-h-11 w-full rounded-xl bg-accent py-3 text-base font-semibold text-on-accent transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
       >
         {saving ? "Saving..." : "Save Rating"}
       </button>
